@@ -318,8 +318,6 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <h2 style="color:var(--accent);">倉位管理</h2>
     <div style="display:flex;align-items:center;gap:10px;">
       <button class="btn" onclick="toggleGistPanel()" id="btnGistToggle" style="border-color:var(--accent);color:var(--accent);">GitHub Gist 同步</button>
-      <button class="btn" onclick="exportPositions()" style="border-color:var(--muted);color:var(--muted);">匯出 JSON</button>
-      <label class="btn" style="border-color:var(--muted);color:var(--muted);cursor:pointer;">匯入 JSON<input type="file" accept=".json" style="display:none;" onchange="importPositions(event)"></label>
       <button class="btn btn-solid" onclick="clearAllPositions()" style="background:var(--red);border-color:var(--red);">清除全部</button>
     </div>
   </div>
@@ -981,30 +979,6 @@ function renderPositions() {
 }
 
 // Export / Import
-function exportPositions() {
-  const data = localStorage.getItem('hedgePositions') || '[]';
-  const blob = new Blob([data], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a'); a.href = url; a.download = 'hedge-positions.json'; a.click();
-  URL.revokeObjectURL(url);
-  showToast('已匯出倉位資料');
-}
-function importPositions(event) {
-  const file = event.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    try {
-      const data = JSON.parse(e.target.result);
-      if (Array.isArray(data)) {
-        localStorage.setItem('hedgePositions', JSON.stringify(data));
-        renderPositions();
-        showToast(`已匯入 ${data.length} 筆倉位資料`);
-      }
-    } catch(err) { showToast('匯入失敗：檔案格式錯誤'); }
-  };
-  reader.readAsText(file);
-}
 function clearAllPositions() {
   if (!confirm('確定要清除所有倉位資料？此操作無法復原。')) return;
   localStorage.removeItem('hedgePositions');
