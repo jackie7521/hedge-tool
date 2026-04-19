@@ -449,112 +449,109 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
 <div class="page" id="page-wsot">
   <div class="wsot-hero">
     <h2>WSOT 交易大賽模擬器</h2>
-    <p>模擬 Bybit 方向交易 + OKX 合約對沖的盈虧情境，找出最佳槓桿配置</p>
+    <p>Bybit 方向交易 + OKX 合約對沖 — 輸入你的 Bybit 計畫，自動算出 OKX 對沖單</p>
   </div>
 
   <div class="wsot-grid">
-    <!-- 左欄：參數設定 -->
+    <!-- 左欄：Bybit 設定（手動填寫） -->
     <div class="card">
       <div class="card-title" style="color:var(--accent2);">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-        比賽參數
+        Bybit（比賽帳戶）
       </div>
-      <div class="section-label" style="color:var(--accent2);">Bybit（比賽帳戶）</div>
-      <div class="form-row"><label>入金金額</label><input type="number" id="wsotDeposit" value="100" step="any"><span class="unit">USDT</span></div>
-      <div class="form-row"><label>Bybit 槓桿</label><input type="number" id="wsotLevBybit" value="50" min="1" max="125" step="1"><span class="unit">x</span></div>
-      <div class="form-row"><label>方向判斷</label>
+      <div class="form-row"><label>幣種</label><input type="text" id="wsotCoin" value="BTC" placeholder="幣種" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"><span class="unit">/ USDT</span><button class="btn-fetch" onclick="fetchWsotPrice()">抓現價</button></div>
+      <div class="form-row"><label>方向</label>
         <div class="toggle-row" style="flex:1;">
           <button class="toggle-btn active" id="wsotDirLong" onclick="setWsotDir('long',this)">做多 ▲</button>
           <button class="toggle-btn" id="wsotDirShort" onclick="setWsotDir('short',this)">做空 ▼</button>
         </div>
       </div>
-      <hr class="divider">
-      <div class="section-label" style="color:var(--accent);">OKX（對沖保險）</div>
-      <div class="form-row"><label>對沖資金</label><input type="number" id="wsotOkxCapital" value="1000" step="any"><span class="unit">USDT</span></div>
-      <div class="form-row"><label>OKX 槓桿</label><input type="number" id="wsotLevOkx" value="5" min="1" max="125" step="1"><span class="unit">x</span></div>
-      <div class="api-status" style="margin-top:4px;">OKX 低槓桿 = 更大抗波動空間，保險不易爆倉</div>
-      <hr class="divider">
-      <div class="section-label">交易標的</div>
-      <div class="form-row"><label>幣種</label><input type="text" id="wsotCoin" value="BTC" placeholder="幣種" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"><span class="unit">/ USDT</span></div>
-      <div class="form-row"><label>現價</label><input type="number" id="wsotPrice" value="75000" step="any"><span class="unit">USDT</span><button class="btn-fetch" onclick="fetchWsotPrice()">即時抓取</button></div>
-      <div class="form-row"><label>手續費率</label><input type="number" id="wsotFeeRate" value="0.02" step="0.001"><span class="unit">%</span></div>
-      <div class="api-status">限價單 maker 0.02% / 市價單 taker 0.05%~0.055%</div>
+      <div class="form-row"><label>入金金額</label><input type="number" id="wsotDeposit" value="100" step="any"><span class="unit">USDT</span></div>
+      <div class="form-row"><label>倉位價值</label><input type="number" id="wsotBybitPosVal" value="5000" step="any"><span class="unit">USDT</span></div>
+      <div class="form-row"><label>槓桿</label><input type="number" id="wsotLevBybit" value="50" min="1" max="125" step="1"><span class="unit">x</span></div>
+      <div class="form-row"><label>下單方式</label>
+        <div class="toggle-row" style="flex:1;">
+          <button class="toggle-btn active" id="wsotBybitOrderLimit" onclick="setWsotBybitOrder('limit',this)">限價單</button>
+          <button class="toggle-btn" id="wsotBybitOrderMarket" onclick="setWsotBybitOrder('market',this)">市價單</button>
+        </div>
+      </div>
+      <div class="form-row"><label>進場價</label><input type="number" id="wsotBybitEntry" value="75000" step="any"><span class="unit">USDT</span></div>
+      <div class="form-row"><label>止盈價</label><input type="number" id="wsotBybitTp" value="82500" step="any"><span class="unit">USDT</span></div>
+      <div class="form-row"><label>止損價</label><input type="number" id="wsotBybitSl" value="73500" step="any"><span class="unit">USDT</span></div>
+      <div class="api-status" id="wsotBybitInfo">止盈 +10.00% / 止損 -2.00% — 風險報酬比 5.00</div>
       <hr class="divider">
       <div class="section-label">持倉期間與資金費率</div>
       <div class="form-row"><label>持倉天數</label><input type="number" id="wsotHoldDays" value="7" min="0" max="90" step="1"><span class="unit">天</span></div>
       <div class="form-row"><label>Bybit 資金費率</label><input type="number" id="wsotBybitFr" value="0.01" step="0.0001"><span class="unit">% / 8hr</span><button class="btn-fetch" onclick="fetchWsotFunding()">抓取</button></div>
       <div class="form-row"><label>OKX 資金費率</label><input type="number" id="wsotOkxFr" value="0.0038" step="0.0001"><span class="unit">% / 8hr</span></div>
       <div class="api-status" id="wsotFrStatus">資金費率每 8 小時結算一次，每天 3 次</div>
-      <hr class="divider">
-      <div class="section-label">模擬漲跌幅</div>
-      <div class="range-display">
-        <span class="dim" style="font-size:.78rem;">-50%</span>
-        <input type="range" id="wsotPctRange" min="-50" max="50" step="0.5" value="10" oninput="document.getElementById('wsotPctVal').textContent=this.value+'%';document.getElementById('wsotPctInput').value=this.value;wsotCalculate();">
-        <span class="dim" style="font-size:.78rem;">+50%</span>
-      </div>
-      <div class="form-row" style="margin-top:8px;">
-        <label>精確輸入</label>
-        <input type="number" id="wsotPctInput" value="10" step="0.5" oninput="document.getElementById('wsotPctRange').value=this.value;document.getElementById('wsotPctVal').textContent=this.value+'%';wsotCalculate();">
-        <span class="unit">%</span>
-        <span class="range-val" id="wsotPctVal">10%</span>
-      </div>
+      <div class="form-row"><label>手續費率</label><input type="number" id="wsotFeeRate" value="0.02" step="0.001"><span class="unit">%</span></div>
+      <div class="api-status">限價單 maker 0.02% / 市價單 taker 0.05%~0.055%</div>
     </div>
 
-    <!-- 右欄：即時結果 -->
+    <!-- 右欄：OKX 自動計算 + 即時結果 -->
     <div class="card">
-      <div class="card-title" style="color:var(--green);">
+      <div class="card-title" style="color:var(--accent);">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        即時模擬結果
+        OKX（對沖保險）— 自動計算
       </div>
+      <div class="form-row"><label>對沖資金</label><input type="number" id="wsotOkxCapital" value="1000" step="any"><span class="unit">USDT</span></div>
+      <div class="form-row"><label>OKX 槓桿</label><input type="number" id="wsotLevOkx" value="5" min="1" max="125" step="1"><span class="unit">x</span></div>
+      <div class="form-row"><label>下單方式</label>
+        <div class="toggle-row" style="flex:1;">
+          <button class="toggle-btn active" id="wsotOkxOrderLimit" onclick="setWsotOkxOrder('limit',this)">限價單</button>
+          <button class="toggle-btn" id="wsotOkxOrderMarket" onclick="setWsotOkxOrder('market',this)">市價單</button>
+        </div>
+      </div>
+      <div class="summary-row" style="margin:14px 0 8px;">
+        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">方向</div><div class="val" id="wsotOkxDir" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">倉位價值</div><div class="val" id="wsotOkxPosVal" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">進場價</div><div class="val" id="wsotOkxEntry" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">爆倉距離</div><div class="val" id="wsotOkxLiq" style="font-size:1rem;">—</div></div>
+      </div>
+      <div class="summary-row" style="margin:0 0 8px;">
+        <div class="summary-card" style="border-color:var(--green);"><div class="lbl">OKX 止盈價</div><div class="val green" id="wsotOkxTp" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--green);"><div class="lbl">止盈時 OKX 損益</div><div class="val green" id="wsotOkxTpPnl" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--red);"><div class="lbl">OKX 止損價</div><div class="val red" id="wsotOkxSl" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--red);"><div class="lbl">止損時 OKX 損益</div><div class="val red" id="wsotOkxSlPnl" style="font-size:1rem;">—</div></div>
+      </div>
+      <div class="api-status" id="wsotOkxInfo" style="margin-bottom:14px;"></div>
+
+      <hr class="divider">
+      <div class="card-title" style="color:var(--accent2);font-size:.9rem;">即時模擬結果</div>
 
       <div class="wsot-result-grid">
-        <div class="wsot-result-box highlight"><div class="label">WSOT ROI%</div><div class="value" id="wsotRoi">—</div></div>
-        <div class="wsot-result-box"><div class="label">Bybit 損益</div><div class="value" id="wsotBybitPnl">—</div></div>
-        <div class="wsot-result-box"><div class="label">OKX 損益</div><div class="value" id="wsotOkxPnl">—</div></div>
-        <div class="wsot-result-box"><div class="label">實際淨損益</div><div class="value" id="wsotNetPnl">—</div></div>
+        <div class="wsot-result-box highlight"><div class="label">WSOT ROI%（止盈時）</div><div class="value" id="wsotRoiTp">—</div></div>
+        <div class="wsot-result-box highlight"><div class="label">WSOT ROI%（止損時）</div><div class="value" id="wsotRoiSl">—</div></div>
+        <div class="wsot-result-box"><div class="label">止盈 — 實際淨損益</div><div class="value" id="wsotNetTp">—</div></div>
+        <div class="wsot-result-box"><div class="label">止損 — 實際淨損益</div><div class="value" id="wsotNetSl">—</div></div>
       </div>
 
       <div class="wsot-result-grid" style="margin-top:12px;">
-        <div class="wsot-result-box"><div class="label">Bybit 倉位大小</div><div class="value" id="wsotBybitPos" style="font-size:1rem;">—</div></div>
-        <div class="wsot-result-box"><div class="label">OKX 倉位大小</div><div class="value" id="wsotOkxPos" style="font-size:1rem;">—</div></div>
+        <div class="wsot-result-box"><div class="label">Bybit 倉位</div><div class="value" id="wsotBybitPos" style="font-size:1rem;">—</div></div>
+        <div class="wsot-result-box"><div class="label">OKX 倉位</div><div class="value" id="wsotOkxPos" style="font-size:1rem;">—</div></div>
         <div class="wsot-result-box"><div class="label">Bybit 爆倉距離</div><div class="value" id="wsotBybitLiq" style="font-size:1rem;">—</div></div>
-        <div class="wsot-result-box"><div class="label">OKX 爆倉距離</div><div class="value" id="wsotOkxLiq" style="font-size:1rem;">—</div></div>
+        <div class="wsot-result-box"><div class="label">投入總資金</div><div class="value" id="wsotTotalCapital" style="font-size:1rem;">—</div></div>
       </div>
 
       <div class="wsot-result-grid" style="margin-top:12px;">
-        <div class="wsot-result-box"><div class="label">投入總資金</div><div class="value" id="wsotTotalCapital" style="font-size:1rem;">—</div></div>
         <div class="wsot-result-box"><div class="label">手續費成本</div><div class="value" id="wsotFeeCost" style="font-size:1rem;">—</div></div>
         <div class="wsot-result-box"><div class="label">累計資金費率</div><div class="value" id="wsotFundingCost" style="font-size:1rem;">—</div></div>
-        <div class="wsot-result-box"><div class="label">最大風險</div><div class="value" id="wsotMaxRisk" style="font-size:1rem;">—</div></div>
-      </div>
-      <div class="wsot-result-grid" style="margin-top:12px;grid-template-columns:repeat(3,1fr);">
-        <div class="wsot-result-box"><div class="label">實際 ROI%</div><div class="value" id="wsotRealRoi" style="font-size:1rem;">—</div></div>
-        <div class="wsot-result-box"><div class="label">總成本（手續費+資金費率）</div><div class="value" id="wsotTotalCost" style="font-size:1rem;">—</div></div>
+        <div class="wsot-result-box"><div class="label">總成本</div><div class="value" id="wsotTotalCost" style="font-size:1rem;">—</div></div>
         <div class="wsot-result-box"><div class="label">結算次數</div><div class="value" id="wsotSettlements" style="font-size:1rem;">—</div></div>
-      </div>
-
-      <hr class="divider" style="margin:18px 0;">
-      <div class="card-title" style="color:var(--accent2);font-size:.9rem;">多情境對照表</div>
-      <div class="table-wrap" style="border:none;">
-        <table class="scenario-table">
-          <thead><tr>
-            <th>漲跌幅</th><th>Bybit 損益</th><th>OKX 損益</th><th>資金費率</th><th>淨損益</th><th>WSOT ROI%</th><th>狀態</th>
-          </tr></thead>
-          <tbody id="wsotScenarioBody"></tbody>
-        </table>
       </div>
     </div>
   </div>
 
-  <button class="btn-main" onclick="wsotCalculate()" style="background:linear-gradient(135deg,#f7a600,#ff4d6a);">重新計算</button>
+  <button class="btn-main" onclick="wsotCalculate()" style="background:linear-gradient(135deg,#f7a600,#ff4d6a);">計算對沖方案</button>
 
   <div class="info-box" id="wsotInfoBox">
     <strong>💡 WSOT 對沖策略說明：</strong><br>
     • WSOT 只計算 Bybit 帳戶的 PnL%，OKX 的盈虧不算在比賽成績內<br>
     • Bybit 用高槓桿放大 ROI%，OKX 用低槓桿當保險避免真實虧損<br>
-    • 看對方向：WSOT 成績大幅領先，OKX 虧損由 Bybit 盈利覆蓋<br>
-    • 看錯方向：Bybit 最多虧入金金額（爆倉止損），OKX 獲利抵銷真實損失<br>
-    • 建議用山寨幣（波動大）配合高槓桿衝 ROI%，BTC/ETH 波動太小
+    • OKX 止盈 = Bybit 止損價（Bybit 虧時 OKX 賺），OKX 止損 = Bybit 止盈價（Bybit 賺時 OKX 虧）<br>
+    • 看對方向：Bybit 止盈 + OKX 止損，WSOT 成績大幅領先<br>
+    • 看錯方向：Bybit 止損 + OKX 止盈，OKX 獲利抵銷 Bybit 虧損
   </div>
 </div>
 
@@ -598,7 +595,12 @@ function goHedge(symbol, price, fundingRate) {
 function goWsot(symbol, price) {
   const rawCoin = symbol.replace('USDT', '');
   document.getElementById('wsotCoin').value = rawCoin;
-  document.getElementById('wsotPrice').value = price;
+  document.getElementById('wsotBybitEntry').value = price;
+  // Auto-suggest TP/SL based on price (±10% / -2%)
+  const tp = wsotDirection === 'long' ? (price * 1.10) : (price * 0.90);
+  const sl = wsotDirection === 'long' ? (price * 0.98) : (price * 1.02);
+  document.getElementById('wsotBybitTp').value = parseFloat(tp.toFixed(price >= 1 ? 2 : 8));
+  document.getElementById('wsotBybitSl').value = parseFloat(sl.toFixed(price >= 1 ? 2 : 8));
   const wsotTab = document.querySelectorAll('.nav-tab')[3];
   switchPage('wsot', wsotTab);
   wsotCalculate();
@@ -1440,11 +1442,25 @@ async function gistLoad() {
 
 // ==================== WSOT SIMULATOR ====================
 let wsotDirection = 'long';
+let wsotBybitOrder = 'limit';
+let wsotOkxOrder = 'limit';
 
 function setWsotDir(dir, el) {
   wsotDirection = dir;
-  document.querySelectorAll('#page-wsot .toggle-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
+  document.getElementById('wsotDirLong').classList.toggle('active', dir === 'long');
+  document.getElementById('wsotDirShort').classList.toggle('active', dir === 'short');
+  wsotCalculate();
+}
+function setWsotBybitOrder(type, el) {
+  wsotBybitOrder = type;
+  document.getElementById('wsotBybitOrderLimit').classList.toggle('active', type === 'limit');
+  document.getElementById('wsotBybitOrderMarket').classList.toggle('active', type === 'market');
+  wsotCalculate();
+}
+function setWsotOkxOrder(type, el) {
+  wsotOkxOrder = type;
+  document.getElementById('wsotOkxOrderLimit').classList.toggle('active', type === 'limit');
+  document.getElementById('wsotOkxOrderMarket').classList.toggle('active', type === 'market');
   wsotCalculate();
 }
 
@@ -1456,8 +1472,14 @@ async function fetchWsotPrice() {
     const r = await fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${sym}`);
     const j = await r.json();
     if (j.retCode === 0 && j.result?.list?.length > 0) {
-      document.getElementById('wsotPrice').value = parseFloat(j.result.list[0].lastPrice);
-      showToast(`已抓取 ${coin} 最新價格`);
+      const price = parseFloat(j.result.list[0].lastPrice);
+      document.getElementById('wsotBybitEntry').value = price;
+      // Auto-suggest TP/SL
+      const tp = wsotDirection === 'long' ? (price * 1.10) : (price * 0.90);
+      const sl = wsotDirection === 'long' ? (price * 0.98) : (price * 1.02);
+      document.getElementById('wsotBybitTp').value = parseFloat(tp.toFixed(price >= 1 ? 2 : 8));
+      document.getElementById('wsotBybitSl').value = parseFloat(sl.toFixed(price >= 1 ? 2 : 8));
+      showToast(`已抓取 ${coin} 最新價格 $${price}`);
       wsotCalculate();
     }
   } catch(e) { showToast('抓取失敗: ' + e.message); }
@@ -1495,196 +1517,196 @@ async function fetchWsotFunding() {
 }
 
 function wsotCalculate() {
+  // === Read Bybit inputs ===
   const deposit = parseFloat(document.getElementById('wsotDeposit').value) || 100;
+  const bybitPosVal = parseFloat(document.getElementById('wsotBybitPosVal').value) || 5000;
   const levBybit = parseFloat(document.getElementById('wsotLevBybit').value) || 50;
-  const okxCapital = parseFloat(document.getElementById('wsotOkxCapital').value) || 1000;
-  const levOkx = parseFloat(document.getElementById('wsotLevOkx').value) || 5;
-  const price = parseFloat(document.getElementById('wsotPrice').value) || 75000;
+  const bybitEntry = parseFloat(document.getElementById('wsotBybitEntry').value) || 75000;
+  const bybitTp = parseFloat(document.getElementById('wsotBybitTp').value) || 0;
+  const bybitSl = parseFloat(document.getElementById('wsotBybitSl').value) || 0;
   const feeRate = parseFloat(document.getElementById('wsotFeeRate').value) / 100 || 0.0002;
-  const pctChange = parseFloat(document.getElementById('wsotPctInput').value) || 0;
   const holdDays = parseFloat(document.getElementById('wsotHoldDays').value) || 0;
   const bybitFrPct = parseFloat(document.getElementById('wsotBybitFr').value) / 100 || 0;
   const okxFrPct = parseFloat(document.getElementById('wsotOkxFr').value) / 100 || 0;
 
-  // Position sizes
-  const bybitPos = deposit * levBybit;
-  const okxPos = okxCapital * levOkx;
+  // === Read OKX inputs ===
+  const okxCapital = parseFloat(document.getElementById('wsotOkxCapital').value) || 1000;
+  const levOkx = parseFloat(document.getElementById('wsotLevOkx').value) || 5;
+
+  // === Derived values ===
+  const bybitPos = bybitPosVal;
+  const okxPos = bybitPosVal; // OKX 對沖倉位 = Bybit 倉位（完全對沖）
+  const okxDir = wsotDirection === 'long' ? '做空 ▼' : '做多 ▲';
+  const okxDirColor = wsotDirection === 'long' ? 'var(--red)' : 'var(--green)';
+
+  // OKX entry = same as Bybit entry
+  const okxEntry = bybitEntry;
+
+  // OKX TP/SL = Bybit SL/TP (opposite)
+  // When Bybit long hits SL (price drops), OKX short profits → OKX TP = Bybit SL
+  // When Bybit long hits TP (price rises), OKX short loses → OKX SL = Bybit TP
+  const okxTp = bybitSl; // OKX profits when Bybit stops out
+  const okxSl = bybitTp; // OKX stops out when Bybit profits
 
   // Liquidation distances
   const bybitLiqPct = (1 / levBybit) * 100 * 0.95;
   const okxLiqPct = (1 / levOkx) * 100 * 0.95;
 
-  // Fee cost (open + close for both sides)
-  const totalFee = (bybitPos * feeRate * 2) + (okxPos * feeRate * 2);
-
-  // Funding rate calculation
-  const settlements = holdDays * 3; // 3 times per day (every 8 hours)
-  // Bybit side: long pays positive rate, short receives positive rate
-  // OKX side: opposite direction
-  let bybitFundingPerSettle, okxFundingPerSettle;
-  if (wsotDirection === 'long') {
-    // Bybit long: pays if rate positive
-    bybitFundingPerSettle = bybitPos * bybitFrPct;
-    // OKX short: receives if rate positive
-    okxFundingPerSettle = -(okxPos * okxFrPct);
-  } else {
-    // Bybit short: receives if rate positive
-    bybitFundingPerSettle = -(bybitPos * bybitFrPct);
-    // OKX long: pays if rate positive
-    okxFundingPerSettle = okxPos * okxFrPct;
+  // Bybit TP/SL percentages
+  let bybitTpPct = 0, bybitSlPct = 0;
+  if (bybitEntry > 0) {
+    if (wsotDirection === 'long') {
+      bybitTpPct = bybitTp ? ((bybitTp - bybitEntry) / bybitEntry * 100) : 0;
+      bybitSlPct = bybitSl ? ((bybitSl - bybitEntry) / bybitEntry * 100) : 0;
+    } else {
+      bybitTpPct = bybitTp ? ((bybitEntry - bybitTp) / bybitEntry * 100) : 0;
+      bybitSlPct = bybitSl ? ((bybitEntry - bybitSl) / bybitEntry * 100) : 0;
+    }
   }
-  const bybitFundingTotal = bybitFundingPerSettle * settlements;
-  const okxFundingTotal = okxFundingPerSettle * settlements;
-  const netFundingTotal = bybitFundingTotal + okxFundingTotal;
+  const riskReward = bybitSlPct !== 0 ? Math.abs(bybitTpPct / bybitSlPct) : 0;
 
-  // Calculate PnL for a given price change
-  function calcScenario(pct) {
-    const move = pct / 100;
+  // Bybit info text
+  const tpSign = bybitTpPct >= 0 ? '+' : '';
+  const slSign = bybitSlPct >= 0 ? '+' : '';
+  document.getElementById('wsotBybitInfo').textContent =
+    `止盈 ${tpSign}${bybitTpPct.toFixed(2)}% / 止損 ${slSign}${bybitSlPct.toFixed(2)}% — 風險報酬比 ${riskReward.toFixed(2)}`;
+
+  // === Fee calculation ===
+  // Bybit side fee
+  const bybitFeeRate = wsotBybitOrder === 'limit' ? feeRate : (feeRate * 2.5); // taker ~0.05%
+  const okxFeeRate = wsotOkxOrder === 'limit' ? feeRate : (feeRate * 2.5);
+  const bybitFee = bybitPos * bybitFeeRate * 2; // open + close
+  const okxFee = okxPos * okxFeeRate * 2;
+  const totalFee = bybitFee + okxFee;
+
+  // === Funding rate ===
+  const settlements = holdDays * 3;
+  let bybitFrPerSettle, okxFrPerSettle;
+  if (wsotDirection === 'long') {
+    bybitFrPerSettle = bybitPos * bybitFrPct;     // long pays
+    okxFrPerSettle = -(okxPos * okxFrPct);         // short receives
+  } else {
+    bybitFrPerSettle = -(bybitPos * bybitFrPct);   // short receives
+    okxFrPerSettle = okxPos * okxFrPct;             // long pays
+  }
+  const bybitFundingTotal = bybitFrPerSettle * settlements;
+  const okxFundingTotal = okxFrPerSettle * settlements;
+  const netFundingTotal = bybitFundingTotal + okxFundingTotal;
+  const totalCostVal = totalFee + netFundingTotal;
+
+  // === PnL calculation for TP and SL scenarios ===
+  function calcPnl(targetPrice) {
+    if (!targetPrice || !bybitEntry) return { bybitPnl: 0, okxPnl: 0, netPnl: 0, wsotRoi: 0 };
+    const move = (targetPrice - bybitEntry) / bybitEntry;
+
+    // Bybit PnL
     let bybitPnl = wsotDirection === 'long' ? bybitPos * move : bybitPos * (-move);
     const bybitMaxLoss = -deposit;
     if (bybitPnl < bybitMaxLoss) bybitPnl = bybitMaxLoss;
-    const bybitLiquidated = bybitPnl <= bybitMaxLoss;
 
+    // OKX PnL (opposite direction)
     let okxPnl = wsotDirection === 'long' ? okxPos * (-move) : okxPos * move;
     const okxMaxLoss = -okxCapital;
     if (okxPnl < okxMaxLoss) okxPnl = okxMaxLoss;
-    const okxLiquidated = okxPnl <= okxMaxLoss;
 
-    // Include funding in PnL (funding cost reduces PnL)
-    const bybitPnlWithFunding = bybitPnl - bybitFundingTotal;
-    const okxPnlWithFunding = okxPnl - okxFundingTotal;
-
-    // Net PnL (real money) = position PnL + funding costs - trade fees
-    const netPnl = bybitPnl + okxPnl - netFundingTotal - totalFee;
-
-    // WSOT ROI% (Bybit account only, including funding cost on Bybit side)
+    const netPnl = bybitPnl + okxPnl - totalCostVal;
     const wsotRoi = ((bybitPnl - bybitFundingTotal) / deposit) * 100;
 
-    const totalCapital = deposit + okxCapital;
-    const realRoi = (netPnl / totalCapital) * 100;
-
-    return { pct, bybitPnl, okxPnl, netPnl, wsotRoi, realRoi, bybitLiquidated, okxLiquidated, bybitFundingTotal, okxFundingTotal, netFundingTotal };
+    return { bybitPnl, okxPnl, netPnl, wsotRoi };
   }
 
-  // Main scenario
-  const main = calcScenario(pctChange);
+  const tpResult = calcPnl(bybitTp);
+  const slResult = calcPnl(bybitSl);
 
-  // Update result boxes
-  const roiEl = document.getElementById('wsotRoi');
-  roiEl.textContent = (main.wsotRoi >= 0 ? '+' : '') + main.wsotRoi.toFixed(1) + '%';
-  roiEl.style.color = main.wsotRoi >= 0 ? 'var(--green)' : 'var(--red)';
+  // OKX PnL at TP/SL
+  const okxTpPnl = slResult.okxPnl; // When Bybit hits SL, OKX profits
+  const okxSlPnl = tpResult.okxPnl; // When Bybit hits TP, OKX loses
 
-  const bybitEl = document.getElementById('wsotBybitPnl');
-  bybitEl.textContent = (main.bybitPnl >= 0 ? '+' : '') + fmt(main.bybitPnl);
-  bybitEl.style.color = main.bybitPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  // === Update OKX panel ===
+  document.getElementById('wsotOkxDir').innerHTML = `<span style="color:${okxDirColor};">${okxDir}</span>`;
+  document.getElementById('wsotOkxPosVal').textContent = '$' + fmtNum(okxPos);
+  document.getElementById('wsotOkxEntry').textContent = bybitEntry ? fmtPrice(okxEntry) : '—';
+  document.getElementById('wsotOkxLiq').textContent = okxLiqPct.toFixed(1) + '%';
+  document.getElementById('wsotOkxLiq').style.color = okxLiqPct < 5 ? 'var(--red)' : okxLiqPct < 15 ? 'var(--accent2)' : 'var(--green)';
 
-  const okxEl = document.getElementById('wsotOkxPnl');
-  okxEl.textContent = (main.okxPnl >= 0 ? '+' : '') + fmt(main.okxPnl);
-  okxEl.style.color = main.okxPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('wsotOkxTp').textContent = okxTp ? fmtPrice(okxTp) : '—';
+  document.getElementById('wsotOkxSl').textContent = okxSl ? fmtPrice(okxSl) : '—';
+  document.getElementById('wsotOkxTpPnl').textContent = okxTp ? ((okxTpPnl >= 0 ? '+' : '') + fmt(okxTpPnl)) : '—';
+  document.getElementById('wsotOkxTpPnl').style.color = okxTpPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('wsotOkxSlPnl').textContent = okxSl ? ((okxSlPnl >= 0 ? '+' : '') + fmt(okxSlPnl)) : '—';
+  document.getElementById('wsotOkxSlPnl').style.color = okxSlPnl >= 0 ? 'var(--green)' : 'var(--red)';
 
-  const netEl = document.getElementById('wsotNetPnl');
-  netEl.textContent = (main.netPnl >= 0 ? '+' : '') + fmt(main.netPnl);
-  netEl.style.color = main.netPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  // OKX info
+  const okxMarginNeeded = okxPos / levOkx;
+  let okxInfo = `OKX 需保證金 $${fmt(okxMarginNeeded)}（${levOkx}x 槓桿），`;
+  if (okxMarginNeeded > okxCapital) {
+    okxInfo += `<span style="color:var(--red);">⚠ 資金不足！差 $${fmt(okxMarginNeeded - okxCapital)}</span>`;
+  } else {
+    okxInfo += `<span style="color:var(--green);">✓ 資金充足，剩餘 $${fmt(okxCapital - okxMarginNeeded)}</span>`;
+  }
+  document.getElementById('wsotOkxInfo').innerHTML = okxInfo;
+
+  // === Update result boxes ===
+  const roiTpEl = document.getElementById('wsotRoiTp');
+  roiTpEl.textContent = bybitTp ? ((tpResult.wsotRoi >= 0 ? '+' : '') + tpResult.wsotRoi.toFixed(1) + '%') : '—';
+  roiTpEl.style.color = tpResult.wsotRoi >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const roiSlEl = document.getElementById('wsotRoiSl');
+  roiSlEl.textContent = bybitSl ? ((slResult.wsotRoi >= 0 ? '+' : '') + slResult.wsotRoi.toFixed(1) + '%') : '—';
+  roiSlEl.style.color = slResult.wsotRoi >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const netTpEl = document.getElementById('wsotNetTp');
+  netTpEl.textContent = bybitTp ? ((tpResult.netPnl >= 0 ? '+' : '') + fmt(tpResult.netPnl)) : '—';
+  netTpEl.style.color = tpResult.netPnl >= 0 ? 'var(--green)' : 'var(--red)';
+
+  const netSlEl = document.getElementById('wsotNetSl');
+  netSlEl.textContent = bybitSl ? ((slResult.netPnl >= 0 ? '+' : '') + fmt(slResult.netPnl)) : '—';
+  netSlEl.style.color = slResult.netPnl >= 0 ? 'var(--green)' : 'var(--red)';
 
   document.getElementById('wsotBybitPos').textContent = '$' + fmtNum(bybitPos);
   document.getElementById('wsotOkxPos').textContent = '$' + fmtNum(okxPos);
   document.getElementById('wsotBybitLiq').textContent = bybitLiqPct.toFixed(1) + '%';
   document.getElementById('wsotBybitLiq').style.color = bybitLiqPct < 3 ? 'var(--red)' : bybitLiqPct < 10 ? 'var(--accent2)' : 'var(--green)';
-  document.getElementById('wsotOkxLiq').textContent = okxLiqPct.toFixed(1) + '%';
-  document.getElementById('wsotOkxLiq').style.color = okxLiqPct < 5 ? 'var(--red)' : okxLiqPct < 15 ? 'var(--accent2)' : 'var(--green)';
 
   const totalCapital = deposit + okxCapital;
   document.getElementById('wsotTotalCapital').textContent = '$' + fmt(totalCapital);
+
   document.getElementById('wsotFeeCost').textContent = '-$' + fmt(totalFee);
   document.getElementById('wsotFeeCost').style.color = 'var(--red)';
 
-  // Funding cost display
   const fundingEl = document.getElementById('wsotFundingCost');
   fundingEl.textContent = (netFundingTotal >= 0 ? '-' : '+') + '$' + fmt(Math.abs(netFundingTotal));
   fundingEl.style.color = netFundingTotal > 0 ? 'var(--red)' : netFundingTotal < 0 ? 'var(--green)' : 'var(--muted)';
 
-  // Total cost
-  const totalCostVal = totalFee + netFundingTotal;
   const totalCostEl = document.getElementById('wsotTotalCost');
   totalCostEl.textContent = (totalCostVal >= 0 ? '-' : '+') + '$' + fmt(Math.abs(totalCostVal));
   totalCostEl.style.color = totalCostVal > 0 ? 'var(--red)' : 'var(--green)';
 
-  // Settlements
   document.getElementById('wsotSettlements').textContent = settlements + ' 次 (' + holdDays + '天)';
   document.getElementById('wsotSettlements').style.color = 'var(--text)';
 
-  const realRoiEl = document.getElementById('wsotRealRoi');
-  realRoiEl.textContent = (main.realRoi >= 0 ? '+' : '') + main.realRoi.toFixed(2) + '%';
-  realRoiEl.style.color = main.realRoi >= 0 ? 'var(--green)' : 'var(--red)';
-
-  document.getElementById('wsotMaxRisk').textContent = '$' + fmt(deposit);
-  document.getElementById('wsotMaxRisk').style.color = 'var(--accent2)';
-
-  // Scenario table
-  const scenarios = [-30, -20, -15, -10, -5, -2, -1, 0, 1, 2, 5, 10, 15, 20, 30];
-  let html = '';
-  scenarios.forEach(pct => {
-    const s = calcScenario(pct);
-    const isMain = Math.abs(pct - pctChange) < 0.01;
-    const rowStyle = isMain ? 'background:rgba(247,166,0,.1);' : '';
-    let status = '';
-    if (s.bybitLiquidated && s.okxLiquidated) status = '<span class="red">雙邊爆倉</span>';
-    else if (s.bybitLiquidated) status = '<span class="red">Bybit 爆倉</span>';
-    else if (s.okxLiquidated) status = '<span class="red">OKX 爆倉 ⚠</span>';
-    else if (s.wsotRoi > 100) status = '<span class="green">大幅領先</span>';
-    else if (s.wsotRoi > 0) status = '<span class="green">看對方向</span>';
-    else status = '<span class="yellow">看錯方向</span>';
-
-    const fundingStr = netFundingTotal === 0 ? '—' : ((netFundingTotal >= 0 ? '-' : '+') + fmt(Math.abs(netFundingTotal)));
-    const fundingCls = netFundingTotal > 0 ? 'red' : netFundingTotal < 0 ? 'green' : 'dim';
-
-    html += `<tr style="${rowStyle}">
-      <td class="${pct >= 0 ? 'green' : 'red'}">${pct >= 0 ? '+' : ''}${pct}%</td>
-      <td class="${s.bybitPnl >= 0 ? 'green' : 'red'}">${s.bybitPnl >= 0 ? '+' : ''}${fmt(s.bybitPnl)}</td>
-      <td class="${s.okxPnl >= 0 ? 'green' : 'red'}">${s.okxPnl >= 0 ? '+' : ''}${fmt(s.okxPnl)}</td>
-      <td class="${fundingCls}">${fundingStr}</td>
-      <td class="${s.netPnl >= 0 ? 'green' : 'red'}" style="font-weight:700;">${s.netPnl >= 0 ? '+' : ''}${fmt(s.netPnl)}</td>
-      <td class="${s.wsotRoi >= 0 ? 'green' : 'red'}" style="font-weight:700;">${s.wsotRoi >= 0 ? '+' : ''}${s.wsotRoi.toFixed(1)}%</td>
-      <td>${status}</td>
-    </tr>`;
-  });
-  document.getElementById('wsotScenarioBody').innerHTML = html;
-
-  // Update info box
-  let tips = `<strong>📊 當前設定分析：</strong><br>`;
-  tips += `• Bybit 入金 $${fmt(deposit)}，${levBybit}x 槓桿 → 倉位 $${fmtNum(bybitPos)}，漲跌 ${bybitLiqPct.toFixed(1)}% 即爆倉<br>`;
-  tips += `• OKX 資金 $${fmt(okxCapital)}，${levOkx}x 槓桿 → 倉位 $${fmtNum(okxPos)}，反向 ${okxLiqPct.toFixed(1)}% 才爆倉<br>`;
-  if (Math.abs(bybitPos - okxPos) / bybitPos > 0.05) {
-    const bigger = bybitPos > okxPos ? 'Bybit' : 'OKX';
-    const diff = Math.abs(bybitPos - okxPos);
-    tips += `• <span style="color:var(--accent2);">⚠ 兩邊倉位不對等：${bigger} 多 $${fmtNum(diff)}，有 $${fmtNum(diff)} 的裸倉風險</span><br>`;
-  } else {
-    tips += `• <span style="color:var(--green);">✓ 兩邊倉位基本對等，對沖有效</span><br>`;
+  // === Info box ===
+  let tips = `<strong>📊 對沖方案分析：</strong><br>`;
+  tips += `• Bybit ${wsotDirection === 'long' ? '做多' : '做空'} $${fmtNum(bybitPos)}，入金 $${fmt(deposit)}，${levBybit}x 槓桿，爆倉距離 ${bybitLiqPct.toFixed(1)}%<br>`;
+  tips += `• OKX ${wsotDirection === 'long' ? '做空' : '做多'} $${fmtNum(okxPos)}，資金 $${fmt(okxCapital)}，${levOkx}x 槓桿，爆倉距離 ${okxLiqPct.toFixed(1)}%<br>`;
+  if (bybitTp && bybitSl) {
+    tips += `<br><strong>🎯 止盈止損情境：</strong><br>`;
+    tips += `• <span style="color:var(--green);">看對（Bybit 止盈）：</span>Bybit ${tpResult.bybitPnl >= 0 ? '+' : ''}${fmt(tpResult.bybitPnl)}，OKX ${tpResult.okxPnl >= 0 ? '+' : ''}${fmt(tpResult.okxPnl)}，淨 ${tpResult.netPnl >= 0 ? '+' : ''}${fmt(tpResult.netPnl)}，WSOT ROI ${tpResult.wsotRoi >= 0 ? '+' : ''}${tpResult.wsotRoi.toFixed(1)}%<br>`;
+    tips += `• <span style="color:var(--red);">看錯（Bybit 止損）：</span>Bybit ${slResult.bybitPnl >= 0 ? '+' : ''}${fmt(slResult.bybitPnl)}，OKX ${slResult.okxPnl >= 0 ? '+' : ''}${fmt(slResult.okxPnl)}，淨 ${slResult.netPnl >= 0 ? '+' : ''}${fmt(slResult.netPnl)}<br>`;
   }
-  tips += `• 手續費總成本：$${fmt(totalFee)}（開+平共 4 次）<br>`;
+  tips += `<br><strong>💰 成本明細：</strong><br>`;
+  tips += `• Bybit 手續費：$${fmt(bybitFee)}（${wsotBybitOrder === 'limit' ? '限價單' : '市價單'}，開+平）<br>`;
+  tips += `• OKX 手續費：$${fmt(okxFee)}（${wsotOkxOrder === 'limit' ? '限價單' : '市價單'}，開+平）<br>`;
   if (holdDays > 0) {
-    tips += `• 持倉 ${holdDays} 天，共 ${settlements} 次資金費率結算<br>`;
-    tips += `• Bybit 資金費率成本：${bybitFundingTotal >= 0 ? '支出' : '收入'} $${fmt(Math.abs(bybitFundingTotal))}<br>`;
-    tips += `• OKX 資金費率成本：${okxFundingTotal >= 0 ? '支出' : '收入'} $${fmt(Math.abs(okxFundingTotal))}<br>`;
-    tips += `• 淨資金費率：${netFundingTotal >= 0 ? '<span style="color:var(--red);">支出' : '<span style="color:var(--green);">收入'} $${fmt(Math.abs(netFundingTotal))}</span><br>`;
+    tips += `• 資金費率（${holdDays}天 × ${settlements}次）：${netFundingTotal >= 0 ? '支出' : '收入'} $${fmt(Math.abs(netFundingTotal))}<br>`;
   }
-  tips += `<br><strong>💡 策略建議：</strong><br>`;
+  tips += `• <strong>總成本：$${fmt(Math.abs(totalCostVal))}</strong><br>`;
   if (bybitLiqPct < 3) {
-    tips += `• <span style="color:var(--red);">⚠ Bybit 槓桿過高（${levBybit}x），僅 ${bybitLiqPct.toFixed(1)}% 波動就爆倉，山寨幣可能秒爆</span><br>`;
+    tips += `<br><span style="color:var(--red);">⚠ Bybit 爆倉距離僅 ${bybitLiqPct.toFixed(1)}%，高波動幣可能來不及止損就爆倉</span><br>`;
   }
   if (okxLiqPct < 10) {
-    tips += `• <span style="color:var(--accent2);">⚠ OKX 爆倉距離僅 ${okxLiqPct.toFixed(1)}%，建議降低槓桿或增加保證金</span><br>`;
+    tips += `<span style="color:var(--accent2);">⚠ OKX 爆倉距離 ${okxLiqPct.toFixed(1)}%，建議降低槓桿確保保險不斷</span><br>`;
   }
-  if (bybitPos > okxPos * 1.2) {
-    tips += `• 建議增加 OKX 資金或槓桿，讓兩邊倉位更接近<br>`;
-  }
-  if (holdDays > 0 && netFundingTotal > totalFee) {
-    tips += `• <span style="color:var(--red);">⚠ 資金費率成本（$${fmt(netFundingTotal)}）已超過手續費（$${fmt(totalFee)}），持倉越久磨損越大</span><br>`;
-  }
-  if (holdDays > 0 && netFundingTotal < 0) {
-    tips += `• <span style="color:var(--green);">✓ 當前費率方向有利，持倉可賺取資金費率收入 $${fmt(Math.abs(netFundingTotal))}</span><br>`;
-  }
-  tips += `• WSOT 最佳策略：看對方向賺高 ROI%，看錯方向最多虧 $${fmt(deposit)}（Bybit 入金）`;
   document.getElementById('wsotInfoBox').innerHTML = tips;
 }
 
