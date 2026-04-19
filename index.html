@@ -517,6 +517,33 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       </div>
       <div class="api-status" id="wsotOkxInfo" style="margin-bottom:14px;"></div>
 
+      <!-- 打平模式 -->
+      <div style="background:rgba(0,212,170,.06);border:1px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <span style="font-size:.9rem;font-weight:700;color:var(--accent);">💰 打平模式</span>
+          <span style="font-size:.72rem;color:var(--muted);">— OKX 止盈自動補償手續費 + 資金費率</span>
+        </div>
+        <div class="summary-row" style="margin:0;">
+          <div class="summary-card" style="border-color:var(--accent);background:rgba(0,212,170,.04);">
+            <div class="lbl">建議 OKX 止盈價</div>
+            <div class="val green" id="wsotOkxTpAdj" style="font-size:1.1rem;">—</div>
+          </div>
+          <div class="summary-card" style="border-color:var(--accent);background:rgba(0,212,170,.04);">
+            <div class="lbl">需額外覆蓋</div>
+            <div class="val" id="wsotCostToRecover" style="font-size:1rem;">—</div>
+          </div>
+          <div class="summary-card" style="border-color:var(--accent);background:rgba(0,212,170,.04);">
+            <div class="lbl">調整後淨損益</div>
+            <div class="val green" id="wsotAdjNetPnl" style="font-size:1rem;">—</div>
+          </div>
+          <div class="summary-card" style="border-color:var(--accent);background:rgba(0,212,170,.04);">
+            <div class="lbl">價格需多跌/漲</div>
+            <div class="val" id="wsotAdjDiff" style="font-size:1rem;">—</div>
+          </div>
+        </div>
+        <div class="api-status" id="wsotAdjInfo" style="margin-top:8px;"></div>
+      </div>
+
       <hr class="divider">
       <div class="card-title" style="color:var(--accent2);font-size:.9rem;">即時模擬結果</div>
 
@@ -1636,6 +1663,68 @@ function wsotCalculate() {
   document.getElementById('wsotOkxTpPnl').style.color = okxTpPnl >= 0 ? 'var(--green)' : 'var(--red)';
   document.getElementById('wsotOkxSlPnl').textContent = okxSl ? ((okxSlPnl >= 0 ? '+' : '') + fmt(okxSlPnl)) : '—';
   document.getElementById('wsotOkxSlPnl').style.color = okxSlPnl >= 0 ? 'var(--green)' : 'var(--red)';
+
+  // === Break-even OKX TP calculation ===
+  // When Bybit hits SL, OKX should profit enough to cover: Bybit loss + all costs
+  // Net PnL = bybitPnl(at SL) + okxPnl(at adjusted TP) - totalCosts = 0
+  // bybitPnl at SL is fixed. We need: okxPnl = -bybitPnl + totalCosts
+  // For OKX short (Bybit long): okxPnl = okxPos × (entry - adjTpPrice) / entry
+  // So: okxPos × (entry - adjTpPrice) / entry = -bybitPnl + totalCosts
+  // entry - adjTpPrice = (-bybitPnl + totalCosts) × entry / okxPos
+  // adjTpPrice = entry - (-bybitPnl + totalCosts) × entry / okxPos
+  let adjOkxTp = 0;
+  let costToRecover = totalCostVal; // total fees + funding
+  if (bybitEntry > 0 && bybitSl > 0 && okxPos > 0) {
+    const bybitPnlAtSl = slResult.bybitPnl; // negative when wrong direction
+    // We want: bybitPnlAtSl + adjOkxPnl - totalCostVal = 0
+    // adjOkxPnl = totalCostVal - bybitPnlAtSl
+    const requiredOkxPnl = totalCostVal - bybitPnlAtSl; // bybitPnlAtSl is negative, so this adds
+    // Actually we want net = 0: bybitPnl + okxPnl = totalCostVal
+    // okxPnl needed = totalCostVal - bybitPnlAtSl (bybitPnlAtSl is negative)
+    // For OKX short: okxPnl = okxPos × (entry - price) / entry
+    // required price: okxPos × (entry - adjTp) / entry = requiredOkxPnl
+    // entry - adjTp = requiredOkxPnl × entry / okxPos
+    // adjTp = entry - requiredOkxPnl × entry / okxPos
+
+    if (wsotDirection === 'long') {
+      // OKX is short, profits when price drops
+      adjOkxTp = bybitEntry - (requiredOkxPnl * bybitEntry / okxPos);
+    } else {
+      // OKX is long, profits when price rises
+      adjOkxTp = bybitEntry + (requiredOkxPnl * bybitEntry / okxPos);
+    }
+  }
+
+  // Display break-even info
+  document.getElementById('wsotOkxTpAdj').textContent = adjOkxTp > 0 ? fmtPrice(adjOkxTp) : '—';
+  document.getElementById('wsotCostToRecover').textContent = '$' + fmt(Math.abs(costToRecover));
+  document.getElementById('wsotCostToRecover').style.color = 'var(--red)';
+
+  // Calculate adjusted net PnL (should be ~0)
+  if (adjOkxTp > 0 && bybitSl > 0) {
+    const adjResult = calcPnl(bybitSl);
+    // Recalculate OKX PnL at adjusted TP price
+    const adjOkxMove = (adjOkxTp - bybitEntry) / bybitEntry;
+    const adjOkxPnl = wsotDirection === 'long' ? okxPos * (-adjOkxMove) : okxPos * adjOkxMove;
+    const adjNet = adjResult.bybitPnl + adjOkxPnl - totalCostVal;
+    document.getElementById('wsotAdjNetPnl').textContent = (adjNet >= 0 ? '+' : '') + fmt(adjNet);
+    document.getElementById('wsotAdjNetPnl').style.color = adjNet >= 0 ? 'var(--green)' : 'var(--red)';
+
+    const priceDiff = Math.abs(adjOkxTp - okxTp);
+    const priceDiffPct = (priceDiff / bybitEntry * 100).toFixed(3);
+    document.getElementById('wsotAdjDiff').textContent = fmtPrice(priceDiff) + ' (' + priceDiffPct + '%)';
+    document.getElementById('wsotAdjDiff').style.color = 'var(--accent2)';
+
+    const adjDir = wsotDirection === 'long' ? '低於' : '高於';
+    document.getElementById('wsotAdjInfo').innerHTML =
+      `OKX 止盈設在 <strong style="color:var(--green);">${fmtPrice(adjOkxTp)}</strong>（比 Bybit 止損價${adjDir} ${fmtPrice(priceDiff)}），即可覆蓋 $${fmt(totalCostVal)} 的手續費+資金費率成本，看錯方向也能打平`;
+    document.getElementById('wsotAdjInfo').style.color = 'var(--green)';
+  } else {
+    document.getElementById('wsotAdjNetPnl').textContent = '—';
+    document.getElementById('wsotAdjDiff').textContent = '—';
+    document.getElementById('wsotAdjInfo').textContent = '請先填寫 Bybit 止損價';
+    document.getElementById('wsotAdjInfo').style.color = 'var(--muted)';
+  }
 
   // OKX info
   const okxMarginNeeded = okxPos / levOkx;
