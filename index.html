@@ -642,10 +642,28 @@ let lbSortAsc = false;
 let lbFilterUSDT = true;
 let lbFilterTop50 = false;
 let autoTimer = null;
+let okxSwapSet = new Set(); // 儲存 OKX 可用的 SWAP 合約
+
+async function loadOkxInstruments() {
+  try {
+    const r = await fetch('https://www.okx.com/api/v5/public/instruments?instType=SWAP');
+    const j = await r.json();
+    if (j.code === '0' && j.data) {
+      okxSwapSet = new Set(j.data.map(d => d.instId));
+    }
+  } catch(e) { console.warn('OKX instruments fetch failed:', e); }
+}
+
+function isOkxAvailable(bybitSymbol) {
+  if (okxSwapSet.size === 0) return true; // 還沒載入時先不擋
+  const okxInstId = COIN_MAP_OKX(bybitSymbol);
+  return okxSwapSet.has(okxInstId);
+}
 
 async function loadLeaderboard() {
   const btn = document.getElementById('btnRefresh');
   btn.classList.add('loading'); btn.textContent = '抓取中…';
+  if (okxSwapSet.size === 0) loadOkxInstruments(); // 首次載入 OKX 合約清單
   try {
     const r = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
     const j = await r.json();
@@ -727,16 +745,25 @@ function renderLb() {
     const bw=Math.min(Math.abs(d.pct24h)/maxPct*100,100);
     const bc=d.pct24h>=0?'var(--green)':'var(--red)';
     const fc=d.fundingRate>=0?'funding-pos':'funding-neg';
-    html+=`<tr onclick="goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})">
+    const okxOk = isOkxAvailable(d.symbol);
+    const noOkxBadge = okxOk ? '' : '<span style="font-size:.6rem;background:#3a1e1e;color:var(--red);padding:1px 6px;border-radius:99px;margin-left:6px;white-space:nowrap;">OKX 無此合約</span>';
+    const btnDisabled = okxOk ? '' : 'disabled style="margin-left:4px;opacity:.35;cursor:not-allowed;pointer-events:none;"';
+    const btnHedge = okxOk
+      ? `<button class="hedge-btn" onclick="event.stopPropagation();goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})">對沖</button>`
+      : `<button class="hedge-btn" disabled style="opacity:.35;cursor:not-allowed;pointer-events:none;">對沖</button>`;
+    const btnWsot = okxOk
+      ? `<button class="hedge-btn" style="margin-left:4px;border-color:var(--accent2);color:var(--accent2);" onclick="event.stopPropagation();goWsot('${d.symbol}',${d.lastPrice})">WSOT</button>`
+      : `<button class="hedge-btn" style="margin-left:4px;opacity:.35;cursor:not-allowed;pointer-events:none;border-color:var(--accent2);color:var(--accent2);" disabled>WSOT</button>`;
+    html+=`<tr ${okxOk ? `onclick="goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})"` : 'style="opacity:.8;"'}>
       <td><span class="rank ${rc}">${rk}</span></td>
-      <td><div class="symbol-cell"><div><span class="symbol-name">${name}</span><span class="symbol-pair"> / USDT</span></div></div></td>
+      <td><div class="symbol-cell"><div><span class="symbol-name">${name}</span><span class="symbol-pair"> / USDT</span>${noOkxBadge}</div></div></td>
       <td class="mono">${fmtPrice(d.lastPrice)}</td>
       <td class="mono ${pctCls(d.pct1h)}">${pctStr(d.pct1h)}</td>
       <td><div class="bar-cell"><span class="mono ${pctCls(d.pct24h)}" style="min-width:70px;">${pctStr(d.pct24h)}</span><div class="bar-bg"><div class="bar-fill" style="width:${bw}%;background:${bc};"></div></div></div></td>
       <td class="mono dim">$${fmtNum(d.turnover24h)}</td>
       <td><span class="funding-badge ${fc}">${(d.fundingRate*100).toFixed(4)}%</span></td>
       <td class="mono dim">$${fmtNum(d.openInterestValue)}</td>
-      <td><button class="hedge-btn" onclick="event.stopPropagation();goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})">對沖</button><button class="hedge-btn" style="margin-left:4px;border-color:var(--accent2);color:var(--accent2);" onclick="event.stopPropagation();goWsot('${d.symbol}',${d.lastPrice})">WSOT</button></td>
+      <td>${btnHedge}${btnWsot}</td>
     </tr>`;
   });
   if(!html)html='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
