@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>OKX / Bybit 合約對沖工具</title>
+<title>Bitget / Bybit 合約對沖工具</title>
 <style>
 :root{--bg:#0b0e11;--card:#14171f;--border:#1e2230;--accent:#00d4aa;--accent2:#f7a600;--red:#ff4d6a;--green:#00e676;--text:#e8e8f0;--muted:#707590;--input-bg:#0f1119;--hover:#1a1e2e;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -33,7 +33,7 @@ body{font-family:'Segoe UI',-apple-system,sans-serif;background:var(--bg);color:
 .card-title{font-size:1rem;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px;}
 .section-label{font-size:.85rem;font-weight:600;margin:12px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--border);}
 .badge{font-size:.65rem;padding:2px 8px;border-radius:99px;font-weight:600;}
-.badge-okx{background:#1e3a2f;color:#00e676;}
+.badge-bitget{background:#1e3a2f;color:#00e676;}
 .badge-bybit{background:#3a2e1e;color:#f7a600;}
 .form-row{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .form-row label{min-width:115px;font-size:.82rem;color:var(--muted);}
@@ -257,7 +257,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
 
 <!-- ==================== PAGE: CALCULATOR ==================== -->
 <div class="page" id="page-calculator">
-  <h2 style="text-align:center;font-size:1.5rem;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">OKX / Bybit 合約對沖成本計算器</h2>
+  <h2 style="text-align:center;font-size:1.5rem;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Bitget / Bybit 合約對沖成本計算器</h2>
   <p style="text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:20px;">永續合約雙平台對沖 — 手續費 / 資金費率 / 滑點 / 提幣費用 即時試算</p>
 
   <div class="status-bar">
@@ -284,8 +284,8 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="form-row"><label>持倉天數</label><input type="number" id="holdDays" value="7" min="1" step="1"><span class="unit">天</span></div>
       <hr class="divider">
       <div class="section-label">對沖方向</div>
-      <div class="form-row"><label>平台 A — 做多</label><select id="platformA"><option value="okx">OKX</option><option value="bybit">Bybit</option></select></div>
-      <div class="form-row"><label>平台 B — 做空</label><select id="platformB"><option value="bybit">Bybit</option><option value="okx">OKX</option></select></div>
+      <div class="form-row"><label>平台 A — 做多</label><select id="platformA"><option value="bitget">Bitget</option><option value="bybit">Bybit</option></select></div>
+      <div class="form-row"><label>平台 B — 做空</label><select id="platformB"><option value="bybit">Bybit</option><option value="bitget">Bitget</option></select></div>
       <div class="form-row"><label>下單方式</label><div class="toggle-row" style="flex:1;"><button class="toggle-btn active" onclick="setOrder('maker',this)">限價單</button><button class="toggle-btn" onclick="setOrder('taker',this)">市價單</button></div></div>
       <hr class="divider">
       <div class="section-label">跨平台轉帳</div>
@@ -294,12 +294,12 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
     </div>
     <!-- 右欄 -->
     <div class="card">
-      <div class="card-title">費率設定 <span class="badge badge-okx">OKX</span> <span class="badge badge-bybit">Bybit</span></div>
-      <div class="section-label" style="color:var(--green);">OKX 合約費率</div>
-      <div class="form-row"><label>限價單 (Maker)</label><input type="number" id="okxFutMaker" value="0.02" step="0.001"><span class="unit">%</span></div>
-      <div class="form-row"><label>市價單 (Taker)</label><input type="number" id="okxFutTaker" value="0.05" step="0.001"><span class="unit">%</span></div>
-      <div class="form-row"><label>資金費率</label><input type="number" id="okxFunding" value="0.0038" step="0.0001"><span class="unit">% / 8hr</span><button class="btn-fetch" id="btnOkxFr" onclick="fetchOkxFunding()">抓取</button></div>
-      <div class="api-status" id="okxFrStatus"></div>
+      <div class="card-title">費率設定 <span class="badge badge-bitget">Bitget</span> <span class="badge badge-bybit">Bybit</span></div>
+      <div class="section-label" style="color:var(--green);">Bitget 合約費率</div>
+      <div class="form-row"><label>限價單 (Maker)</label><input type="number" id="bitgetFutMaker" value="0.02" step="0.001"><span class="unit">%</span></div>
+      <div class="form-row"><label>市價單 (Taker)</label><input type="number" id="bitgetFutTaker" value="0.06" step="0.001"><span class="unit">%</span></div>
+      <div class="form-row"><label>資金費率</label><input type="number" id="bitgetFunding" value="0.0038" step="0.0001"><span class="unit">% / 8hr</span><button class="btn-fetch" id="btnBitgetFr" onclick="fetchBitgetFunding()">抓取</button></div>
+      <div class="api-status" id="bitgetFrStatus"></div>
       <hr class="divider">
       <div class="section-label" style="color:var(--accent2);">Bybit 合約費率</div>
       <div class="form-row"><label>限價單 (Maker)</label><input type="number" id="bybitFutMaker" value="0.02" step="0.001"><span class="unit">%</span></div>
@@ -449,7 +449,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
 <div class="page" id="page-wsot">
   <div class="wsot-hero">
     <h2>WSOT 交易大賽模擬器</h2>
-    <p>Bybit 方向交易 + OKX 合約對沖 — 輸入你的 Bybit 計畫，自動算出 OKX 對沖單</p>
+    <p>Bybit 方向交易 + Bitget 合約對沖 — 輸入你的 Bybit 計畫，自動算出 Bitget 對沖單</p>
   </div>
 
   <div class="wsot-grid">
@@ -483,50 +483,50 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="section-label">持倉期間與資金費率</div>
       <div class="form-row"><label>持倉天數</label><input type="number" id="wsotHoldDays" value="7" min="0" max="90" step="1"><span class="unit">天</span></div>
       <div class="form-row"><label>Bybit 資金費率</label><input type="number" id="wsotBybitFr" value="0.01" step="0.0001"><span class="unit">% / 8hr</span><button class="btn-fetch" onclick="fetchWsotFunding()">抓取</button></div>
-      <div class="form-row"><label>OKX 資金費率</label><input type="number" id="wsotOkxFr" value="0.0038" step="0.0001"><span class="unit">% / 8hr</span></div>
+      <div class="form-row"><label>Bitget 資金費率</label><input type="number" id="wsotBitgetFr" value="0.0038" step="0.0001"><span class="unit">% / 8hr</span></div>
       <div class="api-status" id="wsotFrStatus">資金費率每 8 小時結算一次，每天 3 次</div>
       <div class="form-row"><label>手續費率</label><input type="number" id="wsotFeeRate" value="0.02" step="0.001"><span class="unit">%</span></div>
       <div class="api-status">限價單 maker 0.02% / 市價單 taker 0.05%~0.055%</div>
     </div>
 
-    <!-- 右欄：OKX 自動計算 + 即時結果 -->
+    <!-- 右欄：Bitget 自動計算 + 即時結果 -->
     <div class="card">
       <div class="card-title" style="color:var(--accent);">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        OKX（對沖保險）— 自動計算
+        Bitget（對沖保險）— 自動計算
       </div>
-      <div class="form-row"><label>對沖資金</label><input type="number" id="wsotOkxCapital" value="1000" step="any"><span class="unit">USDT</span></div>
-      <div class="form-row"><label>OKX 槓桿</label><input type="number" id="wsotLevOkx" value="5" min="1" max="125" step="1"><span class="unit">x</span></div>
+      <div class="form-row"><label>對沖資金</label><input type="number" id="wsotBitgetCapital" value="1000" step="any"><span class="unit">USDT</span></div>
+      <div class="form-row"><label>Bitget 槓桿</label><input type="number" id="wsotLevBitget" value="5" min="1" max="125" step="1"><span class="unit">x</span></div>
       <div class="form-row"><label>下單方式</label>
         <div class="toggle-row" style="flex:1;">
-          <button class="toggle-btn active" id="wsotOkxOrderLimit" onclick="setWsotOkxOrder('limit',this)">限價單</button>
-          <button class="toggle-btn" id="wsotOkxOrderMarket" onclick="setWsotOkxOrder('market',this)">市價單</button>
+          <button class="toggle-btn active" id="wsotBitgetOrderLimit" onclick="setWsotBitgetOrder('limit',this)">限價單</button>
+          <button class="toggle-btn" id="wsotBitgetOrderMarket" onclick="setWsotBitgetOrder('market',this)">市價單</button>
         </div>
       </div>
       <div class="summary-row" style="margin:14px 0 8px;">
-        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">方向</div><div class="val" id="wsotOkxDir" style="font-size:1rem;">—</div></div>
-        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">倉位價值</div><div class="val" id="wsotOkxPosVal" style="font-size:1rem;">—</div></div>
-        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">進場價</div><div class="val" id="wsotOkxEntry" style="font-size:1rem;">—</div></div>
-        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">爆倉距離</div><div class="val" id="wsotOkxLiq" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">方向</div><div class="val" id="wsotBitgetDir" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">倉位價值</div><div class="val" id="wsotBitgetPosVal" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">進場價</div><div class="val" id="wsotBitgetEntry" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--accent);"><div class="lbl">爆倉距離</div><div class="val" id="wsotBitgetLiq" style="font-size:1rem;">—</div></div>
       </div>
       <div class="summary-row" style="margin:0 0 8px;">
-        <div class="summary-card" style="border-color:var(--green);"><div class="lbl">OKX 止盈價</div><div class="val green" id="wsotOkxTp" style="font-size:1rem;">—</div></div>
-        <div class="summary-card" style="border-color:var(--green);"><div class="lbl">止盈時 OKX 損益</div><div class="val green" id="wsotOkxTpPnl" style="font-size:1rem;">—</div></div>
-        <div class="summary-card" style="border-color:var(--red);"><div class="lbl">OKX 止損價</div><div class="val red" id="wsotOkxSl" style="font-size:1rem;">—</div></div>
-        <div class="summary-card" style="border-color:var(--red);"><div class="lbl">止損時 OKX 損益</div><div class="val red" id="wsotOkxSlPnl" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--green);"><div class="lbl">Bitget 止盈價</div><div class="val green" id="wsotBitgetTp" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--green);"><div class="lbl">止盈時 Bitget 損益</div><div class="val green" id="wsotBitgetTpPnl" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--red);"><div class="lbl">Bitget 止損價</div><div class="val red" id="wsotBitgetSl" style="font-size:1rem;">—</div></div>
+        <div class="summary-card" style="border-color:var(--red);"><div class="lbl">止損時 Bitget 損益</div><div class="val red" id="wsotBitgetSlPnl" style="font-size:1rem;">—</div></div>
       </div>
-      <div class="api-status" id="wsotOkxInfo" style="margin-bottom:14px;"></div>
+      <div class="api-status" id="wsotBitgetInfo" style="margin-bottom:14px;"></div>
 
       <!-- 打平模式 -->
       <div style="background:rgba(0,212,170,.06);border:1px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:14px;">
         <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
           <span style="font-size:.9rem;font-weight:700;color:var(--accent);">💰 打平模式</span>
-          <span style="font-size:.72rem;color:var(--muted);">— OKX 止盈自動補償手續費 + 資金費率</span>
+          <span style="font-size:.72rem;color:var(--muted);">— Bitget 止盈自動補償手續費 + 資金費率</span>
         </div>
         <div class="summary-row" style="margin:0;">
           <div class="summary-card" style="border-color:var(--accent);background:rgba(0,212,170,.04);">
-            <div class="lbl">建議 OKX 止盈價</div>
-            <div class="val green" id="wsotOkxTpAdj" style="font-size:1.1rem;">—</div>
+            <div class="lbl">建議 Bitget 止盈價</div>
+            <div class="val green" id="wsotBitgetTpAdj" style="font-size:1.1rem;">—</div>
           </div>
           <div class="summary-card" style="border-color:var(--accent);background:rgba(0,212,170,.04);">
             <div class="lbl">需額外覆蓋</div>
@@ -556,7 +556,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
 
       <div class="wsot-result-grid" style="margin-top:12px;">
         <div class="wsot-result-box"><div class="label">Bybit 倉位</div><div class="value" id="wsotBybitPos" style="font-size:1rem;">—</div></div>
-        <div class="wsot-result-box"><div class="label">OKX 倉位</div><div class="value" id="wsotOkxPos" style="font-size:1rem;">—</div></div>
+        <div class="wsot-result-box"><div class="label">Bitget 倉位</div><div class="value" id="wsotBitgetPos" style="font-size:1rem;">—</div></div>
         <div class="wsot-result-box"><div class="label">Bybit 爆倉距離</div><div class="value" id="wsotBybitLiq" style="font-size:1rem;">—</div></div>
         <div class="wsot-result-box"><div class="label">投入總資金</div><div class="value" id="wsotTotalCapital" style="font-size:1rem;">—</div></div>
       </div>
@@ -573,11 +573,11 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
 
   <div class="info-box" id="wsotInfoBox">
     <strong>💡 WSOT 對沖策略說明：</strong><br>
-    • WSOT 只計算 Bybit 帳戶的 PnL%，OKX 的盈虧不算在比賽成績內<br>
-    • Bybit 用高槓桿放大 ROI%，OKX 用低槓桿當保險避免真實虧損<br>
-    • OKX 止盈 = Bybit 止損價（Bybit 虧時 OKX 賺），OKX 止損 = Bybit 止盈價（Bybit 賺時 OKX 虧）<br>
-    • 看對方向：Bybit 止盈 + OKX 止損，WSOT 成績大幅領先<br>
-    • 看錯方向：Bybit 止損 + OKX 止盈，OKX 獲利抵銷 Bybit 虧損
+    • WSOT 只計算 Bybit 帳戶的 PnL%，Bitget 的盈虧不算在比賽成績內<br>
+    • Bybit 用高槓桿放大 ROI%，Bitget 用低槓桿當保險避免真實虧損<br>
+    • Bitget 止盈 = Bybit 止損價（Bybit 虧時 Bitget 賺），Bitget 止損 = Bybit 止盈價（Bybit 賺時 Bitget 虧）<br>
+    • 看對方向：Bybit 止盈 + Bitget 止損，WSOT 成績大幅領先<br>
+    • 看錯方向：Bybit 止損 + Bitget 止盈，Bitget 獲利抵銷 Bybit 虧損
   </div>
 </div>
 
@@ -601,7 +601,7 @@ function showToast(msg) {
 function goHedge(symbol, price, fundingRate) {
   const rawCoin = symbol.replace('USDT', '');
   // 存原始 Bybit 符號用於 Bybit API，計算器顯示轉換後名稱
-  const displayCoin = normalizeForOKX(rawCoin);
+  const displayCoin = normalizeForBitget(rawCoin);
   document.getElementById('coin').value = rawCoin;
   document.getElementById('coin').dataset.bybitSymbol = symbol; // 保留完整 Bybit 符號
   document.getElementById('entryPrice').value = price;
@@ -613,8 +613,8 @@ function goHedge(symbol, price, fundingRate) {
   const calcTab = document.querySelectorAll('.nav-tab')[1];
   switchPage('calculator', calcTab);
   showToast(`已帶入 ${rawCoin}/USDT — $${price}`);
-  // Auto fetch OKX funding (will auto-normalize symbol)
-  fetchOkxFunding();
+  // Auto fetch Bitget funding (will auto-normalize symbol)
+  fetchBitgetFunding();
 }
 
 // ==================== BRING COIN TO WSOT ====================
@@ -641,28 +641,28 @@ let lbSortAsc = false;
 let lbFilterUSDT = true;
 let lbFilterTop50 = false;
 let autoTimer = null;
-let okxSwapSet = new Set(); // 儲存 OKX 可用的 SWAP 合約
+let bitgetContractSet = new Set(); // 儲存 Bitget 可用的合約
 
-async function loadOkxInstruments() {
+async function loadBitgetContracts() {
   try {
-    const r = await fetch('https://www.okx.com/api/v5/public/instruments?instType=SWAP');
+    const r = await fetch('https://api.bitget.com/api/v2/mix/market/contracts?productType=USDT-FUTURES');
     const j = await r.json();
-    if (j.code === '0' && j.data) {
-      okxSwapSet = new Set(j.data.map(d => d.instId));
+    if (j.code === '00000' && j.data) {
+      bitgetContractSet = new Set(j.data.map(d => d.symbol));
     }
-  } catch(e) { console.warn('OKX instruments fetch failed:', e); }
+  } catch(e) { console.warn('Bitget contracts fetch failed:', e); }
 }
 
-function isOkxAvailable(bybitSymbol) {
-  if (okxSwapSet.size === 0) return true; // 還沒載入時先不擋
-  const okxInstId = COIN_MAP_OKX(bybitSymbol);
-  return okxSwapSet.has(okxInstId);
+function isBitgetAvailable(bybitSymbol) {
+  if (bitgetContractSet.size === 0) return true; // 還沒載入時先不擋
+  const bitgetSymbol = COIN_MAP_BITGET(bybitSymbol);
+  return bitgetContractSet.has(bitgetSymbol);
 }
 
 async function loadLeaderboard() {
   const btn = document.getElementById('btnRefresh');
   btn.classList.add('loading'); btn.textContent = '抓取中…';
-  if (okxSwapSet.size === 0) loadOkxInstruments(); // 首次載入 OKX 合約清單
+  if (bitgetContractSet.size === 0) loadBitgetContracts(); // 首次載入 Bitget 合約清單
   try {
     const r = await fetch('https://api.bybit.com/v5/market/tickers?category=linear');
     const j = await r.json();
@@ -744,18 +744,18 @@ function renderLb() {
     const bw=Math.min(Math.abs(d.pct24h)/maxPct*100,100);
     const bc=d.pct24h>=0?'var(--green)':'var(--red)';
     const fc=d.fundingRate>=0?'funding-pos':'funding-neg';
-    const okxOk = isOkxAvailable(d.symbol);
-    const noOkxBadge = okxOk ? '' : '<span style="font-size:.6rem;background:#3a1e1e;color:var(--red);padding:1px 6px;border-radius:99px;margin-left:6px;white-space:nowrap;">OKX 無此合約</span>';
-    const btnDisabled = okxOk ? '' : 'disabled style="margin-left:4px;opacity:.35;cursor:not-allowed;pointer-events:none;"';
-    const btnHedge = okxOk
+    const bitgetOk = isBitgetAvailable(d.symbol);
+    const noBitgetBadge = bitgetOk ? '' : '<span style="font-size:.6rem;background:#3a1e1e;color:var(--red);padding:1px 6px;border-radius:99px;margin-left:6px;white-space:nowrap;">Bitget 無此合約</span>';
+    const btnDisabled = bitgetOk ? '' : 'disabled style="margin-left:4px;opacity:.35;cursor:not-allowed;pointer-events:none;"';
+    const btnHedge = bitgetOk
       ? `<button class="hedge-btn" onclick="event.stopPropagation();goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})">對沖</button>`
       : `<button class="hedge-btn" disabled style="opacity:.35;cursor:not-allowed;pointer-events:none;">對沖</button>`;
-    const btnWsot = okxOk
+    const btnWsot = bitgetOk
       ? `<button class="hedge-btn" style="margin-left:4px;border-color:var(--accent2);color:var(--accent2);" onclick="event.stopPropagation();goWsot('${d.symbol}',${d.lastPrice})">WSOT</button>`
       : `<button class="hedge-btn" style="margin-left:4px;opacity:.35;cursor:not-allowed;pointer-events:none;border-color:var(--accent2);color:var(--accent2);" disabled>WSOT</button>`;
-    html+=`<tr ${okxOk ? `onclick="goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})"` : 'style="opacity:.8;"'}>
+    html+=`<tr ${bitgetOk ? `onclick="goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})"` : 'style="opacity:.8;"'}>
       <td><span class="rank ${rc}">${rk}</span></td>
-      <td><div class="symbol-cell"><div><span class="symbol-name">${name}</span><span class="symbol-pair"> / USDT</span>${noOkxBadge}</div></div></td>
+      <td><div class="symbol-cell"><div><span class="symbol-name">${name}</span><span class="symbol-pair"> / USDT</span>${noBitgetBadge}</div></div></td>
       <td class="mono">${fmtPrice(d.lastPrice)}</td>
       <td class="mono ${pctCls(d.pct1h)}">${pctStr(d.pct1h)}</td>
       <td><div class="bar-cell"><span class="mono ${pctCls(d.pct24h)}" style="min-width:70px;">${pctStr(d.pct24h)}</span><div class="bar-bg"><div class="bar-fill" style="width:${bw}%;background:${bc};"></div></div></div></td>
@@ -785,48 +785,47 @@ function fmt(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximum
 function fmtPct(n){return n.toFixed(4)+'%';}
 function v_coin(){return document.getElementById('coin').value.trim().toUpperCase();}
 
-// Bybit 與 OKX 符號轉換：處理 1000PEPE → PEPE、1000SHIB → SHIB 等差異
-const BYBIT_TO_OKX_MAP = {
-  '1000PEPE':'PEPE','1000SHIB':'SHIB','1000FLOKI':'FLOKI','1000BONK':'BONK',
-  '1000LUNC':'LUNC','1000XEC':'XEC','10000SATS':'SATS','1000RATS':'RATS',
-  '10000LADYS':'LADYS','1000BTT':'BTT','10000WEN':'WEN','1000CAT':'CAT',
-  '1000CHEEMS':'CHEEMS','1000TURBO':'TURBO','1000APU':'APU',
-  '1MBABYDOGE':'BABYDOGE','1000MOGGO':'MOGGO',
+// Bybit 與 Bitget 符號轉換：處理 1000PEPE → PEPE、1000SHIB → SHIB 等差異
+const BYBIT_TO_BITGET_MAP = {
+  '1000PEPE':'PEPE','1000FLOKI':'FLOKI','1000LUNC':'LUNC',
+  '1000NEIROCTO':'NEIROCTO','1000TAG':'TAG','1000TOSHI':'TOSHI',
+  '1000TURBO':'TURBO','10000SATS':'1000SATS',
+  '1000000BABYDOGE':'1MBABYDOGE','1000000CHEEMS':'1MCHEEMS',
 };
-function normalizeForOKX(symbol) {
+function normalizeForBitget(symbol) {
   // 去掉 USDT 尾巴
   let coin = symbol.replace('USDT','');
   // 查表轉換
-  if (BYBIT_TO_OKX_MAP[coin]) coin = BYBIT_TO_OKX_MAP[coin];
+  if (BYBIT_TO_BITGET_MAP[coin]) coin = BYBIT_TO_BITGET_MAP[coin];
   return coin;
 }
-const COIN_MAP_OKX=(c)=>`${normalizeForOKX(c)}-USDT-SWAP`;
+const COIN_MAP_BITGET=(c)=>`${normalizeForBitget(c)}USDT`;
 const COIN_MAP_BYBIT=(c)=> c.includes('USDT') ? c : `${c}USDT`;
 
 function setStatusEl(id,text,ok){const el=document.getElementById(id);el.textContent=text;el.style.color=ok?'var(--green)':'var(--red)';}
 function setBtnState(btn,state){btn.classList.remove('loading','success','fail');if(state)btn.classList.add(state);btn.textContent=state==='loading'?'抓取中…':'抓取';}
 
-async function fetchOkxFunding(){
-  const btn=document.getElementById('btnOkxFr');const coin=v_coin();
-  if(!coin){setStatusEl('okxFrStatus','✗ 請先輸入幣種代號',false);setBtnState(btn,'fail');return;}
+async function fetchBitgetFunding(){
+  const btn=document.getElementById('btnBitgetFr');const coin=v_coin();
+  if(!coin){setStatusEl('bitgetFrStatus','✗ 請先輸入幣種代號',false);setBtnState(btn,'fail');return;}
   setBtnState(btn,'loading');
   try{
-    const r=await fetch(`https://www.okx.com/api/v5/public/funding-rate?instId=${COIN_MAP_OKX(coin)}`);
+    const r=await fetch(`https://api.bitget.com/api/v2/mix/market/current-fund-rate?symbol=${COIN_MAP_BITGET(coin)}&productType=USDT-FUTURES`);
     const j=await r.json();
-    if(j.code==='0'&&j.data&&j.data.length>0){
+    if(j.code==='00000'&&j.data&&j.data.length>0){
       const rate=parseFloat(j.data[0].fundingRate);
-      document.getElementById('okxFunding').value=(rate*100).toFixed(4);
-      setStatusEl('okxFrStatus',`✓ OKX ${coin} 資金費率: ${(rate*100).toFixed(6)}% — ${new Date().toLocaleTimeString()}`,true);
+      document.getElementById('bitgetFunding').value=(rate*100).toFixed(4);
+      setStatusEl('bitgetFrStatus',`✓ Bitget ${coin} 資金費率: ${(rate*100).toFixed(6)}% — ${new Date().toLocaleTimeString()}`,true);
       setBtnState(btn,'success');
-      try{const pr=await fetch(`https://www.okx.com/api/v5/public/mark-price?instType=SWAP&instId=${COIN_MAP_OKX(coin)}`);const pj=await pr.json();if(pj.code==='0'&&pj.data&&pj.data.length>0)document.getElementById('entryPrice').value=parseFloat(pj.data[0].markPx).toFixed(2);}catch(e){}
+      try{const pr=await fetch(`https://api.bitget.com/api/v2/mix/market/ticker?symbol=${COIN_MAP_BITGET(coin)}&productType=USDT-FUTURES`);const pj=await pr.json();if(pj.code==='00000'&&pj.data&&pj.data.length>0)document.getElementById('entryPrice').value=parseFloat(pj.data[0].markPrice).toFixed(2);}catch(e){}
     }else throw new Error(j.msg||'No data');
   }catch(e){
-    const okxSymbol = COIN_MAP_OKX(coin);
+    const bitgetSymbol = COIN_MAP_BITGET(coin);
     let errMsg = e.message;
     if (errMsg.includes('Instrument') || errMsg.includes('不存在')) {
-      errMsg = `OKX 無此合約 (${okxSymbol})，該幣可能僅在 Bybit 上架，請手動輸入費率`;
+      errMsg = `Bitget 無此合約 (${bitgetSymbol})，該幣可能僅在 Bybit 上架，請手動輸入費率`;
     }
-    setStatusEl('okxFrStatus',`✗ ${errMsg}`,false);setBtnState(btn,'fail');
+    setStatusEl('bitgetFrStatus',`✗ ${errMsg}`,false);setBtnState(btn,'fail');
   }
 }
 
@@ -849,11 +848,11 @@ async function fetchBybitFunding(){
 
 async function fetchAllLive(){
   const btn=document.getElementById('btnFetchAll');btn.textContent='抓取中…';btn.classList.add('loading');
-  await Promise.allSettled([fetchOkxFunding(),fetchBybitFunding()]);
-  const okxOk=document.getElementById('okxFrStatus').style.color.includes('green');
+  await Promise.allSettled([fetchBitgetFunding(),fetchBybitFunding()]);
+  const bitgetOk=document.getElementById('bitgetFrStatus').style.color.includes('green');
   const bybitOk=document.getElementById('bybitFrStatus').style.color.includes('green');
   const dot=document.getElementById('apiDot');const st=document.getElementById('apiStatus');
-  if(okxOk||bybitOk){dot.className='live-dot on';st.textContent=`即時數據已更新 — ${new Date().toLocaleTimeString()}`;st.style.color='var(--green)';}
+  if(bitgetOk||bybitOk){dot.className='live-dot on';st.textContent=`即時數據已更新 — ${new Date().toLocaleTimeString()}`;st.style.color='var(--green)';}
   else{dot.className='live-dot off';st.textContent='API 連線失敗，請手動輸入費率';st.style.color='var(--red)';}
   btn.textContent='即時抓取';btn.classList.remove('loading');
 }
@@ -861,29 +860,29 @@ async function fetchAllLive(){
 function onCoinChange(){
   const prices={BTC:85000,ETH:1800,SOL:140,XRP:0.55,DOGE:0.08,PEPE:0.000008,SUI:1.2,AVAX:22,ADA:0.35,LINK:13,OP:1.5,ARB:0.35,APT:6,SEI:0.3,TIA:5,INJ:15,NEAR:4,TON:3.5,TRUMP:10,PENDLE:3,AAVE:200,UNI:7};
   const coin=v_coin();if(prices[coin])document.getElementById('entryPrice').value=prices[coin];
-  document.getElementById('okxFrStatus').textContent='';document.getElementById('bybitFrStatus').textContent='';
+  document.getElementById('bitgetFrStatus').textContent='';document.getElementById('bybitFrStatus').textContent='';
 }
 
 function calculate(){
   const notional=v('positionUsdt');const levA=v('leverageA');const levB=v('leverageB');const holdDays=v('holdDays');
   const slipOpenPct=v('slippageOpen')/100;const slipClosePct=v('slippageClose')/100;
-  const okxFundingPct=v('okxFunding')/100;const bybitFundingPct=v('bybitFunding')/100;
+  const bitgetFundingPct=v('bitgetFunding')/100;const bybitFundingPct=v('bybitFunding')/100;
   const withdrawFeeUnit=v('withdrawFee');const transfers=parseInt(s('needTransfer'));
   const platA=s('platformA');const platB=s('platformB');
-  function getFee(p,m){if(p==='okx')return m==='maker'?v('okxFutMaker')/100:v('okxFutTaker')/100;return m==='maker'?v('bybitFutMaker')/100:v('bybitFutTaker')/100;}
+  function getFee(p,m){if(p==='bitget')return m==='maker'?v('bitgetFutMaker')/100:v('bitgetFutTaker')/100;return m==='maker'?v('bybitFutMaker')/100:v('bybitFutTaker')/100;}
   const ot=orderType;
   const fAo=getFee(platA,ot),fAc=getFee(platA,ot),fBo=getFee(platB,ot),fBc=getFee(platB,ot);
   const cAo=notional*fAo,cAc=notional*fAc,cBo=notional*fBo,cBc=notional*fBc;
   const slO=notional*slipOpenPct*2,slC=notional*slipClosePct*2,slT=slO+slC;
   const ft=holdDays*3;
-  const frA=platA==='okx'?okxFundingPct:bybitFundingPct;
-  const frB=platB==='okx'?okxFundingPct:bybitFundingPct;
+  const frA=platA==='bitget'?bitgetFundingPct:bybitFundingPct;
+  const frB=platB==='bitget'?bitgetFundingPct:bybitFundingPct;
   const fA8=notional*frA,fB8=notional*frB*-1;
   const fNet8=fA8+fB8,fTotal=fNet8*ft;
   const wTotal=withdrawFeeUnit*transfers;
   const total=cAo+cAc+cBo+cBc+slT+fTotal+wTotal;
   const costPct=(total/notional)*100;
-  const pn=p=>p==='okx'?'OKX':'Bybit';
+  const pn=p=>p==='bitget'?'Bitget':'Bybit';
   const otl=t=>t==='maker'?'限價單':'市價單';
   const rows=[
     {i:`做多開倉手續費 (${otl(ot)})`,p:pn(platA),f:`${fmt(notional)} × ${fmtPct(fAo*100)}`,v:cAo,c:'red'},
@@ -970,12 +969,12 @@ function confirmOrder() {
     orderType: orderType,
     // Fee rates at time of order
     feeRateA: orderType === 'maker'
-      ? (s('platformA') === 'okx' ? v('okxFutMaker') : v('bybitFutMaker'))
-      : (s('platformA') === 'okx' ? v('okxFutTaker') : v('bybitFutTaker')),
+      ? (s('platformA') === 'bitget' ? v('bitgetFutMaker') : v('bybitFutMaker'))
+      : (s('platformA') === 'bitget' ? v('bitgetFutTaker') : v('bybitFutTaker')),
     feeRateB: orderType === 'maker'
-      ? (s('platformB') === 'okx' ? v('okxFutMaker') : v('bybitFutMaker'))
-      : (s('platformB') === 'okx' ? v('okxFutTaker') : v('bybitFutTaker')),
-    okxFunding: v('okxFunding'),
+      ? (s('platformB') === 'bitget' ? v('bitgetFutMaker') : v('bybitFutMaker'))
+      : (s('platformB') === 'bitget' ? v('bitgetFutTaker') : v('bybitFutTaker')),
+    bitgetFunding: v('bitgetFunding'),
     bybitFunding: v('bybitFunding'),
     status: 'pending', // pending | active | closed
     createdAt: Date.now(),
@@ -1151,7 +1150,7 @@ async function updateFundingCosts() {
     const prevSettlements = pos.fundingHistory.length;
     if (totalSettlements > prevSettlements) {
       // Fetch latest funding rate for this coin from both platforms
-      let frA = pos.okxFunding / 100;
+      let frA = pos.bitgetFunding / 100;
       let frB = pos.bybitFunding / 100;
       try {
         const bSym = pos.coin.includes('USDT') ? pos.coin : pos.coin + 'USDT';
@@ -1204,7 +1203,7 @@ function renderPositions() {
   updateNavBadge();
 
   // Render pending
-  const pn = p => p === 'okx' ? 'OKX' : 'Bybit';
+  const pn = p => p === 'bitget' ? 'Bitget' : 'Bybit';
   if (pending.length === 0) {
     document.getElementById('pendingBody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">尚無掛單，請到「對沖計算器」按「確認開單」新增</td></tr>';
   } else {
@@ -1496,7 +1495,7 @@ async function gistLoad() {
 // ==================== WSOT SIMULATOR ====================
 let wsotDirection = 'long';
 let wsotBybitOrder = 'limit';
-let wsotOkxOrder = 'limit';
+let wsotBitgetOrder = 'limit';
 
 function setWsotDir(dir, el) {
   const oldDir = wsotDirection;
@@ -1519,10 +1518,10 @@ function setWsotBybitOrder(type, el) {
   document.getElementById('wsotBybitOrderMarket').classList.toggle('active', type === 'market');
   wsotCalculate();
 }
-function setWsotOkxOrder(type, el) {
-  wsotOkxOrder = type;
-  document.getElementById('wsotOkxOrderLimit').classList.toggle('active', type === 'limit');
-  document.getElementById('wsotOkxOrderMarket').classList.toggle('active', type === 'market');
+function setWsotBitgetOrder(type, el) {
+  wsotBitgetOrder = type;
+  document.getElementById('wsotBitgetOrderLimit').classList.toggle('active', type === 'limit');
+  document.getElementById('wsotBitgetOrderMarket').classList.toggle('active', type === 'market');
   wsotCalculate();
 }
 
@@ -1560,13 +1559,13 @@ async function fetchWsotFunding() {
       const bRate = parseFloat(bj.result.list[0].fundingRate);
       document.getElementById('wsotBybitFr').value = (bRate * 100).toFixed(4);
     }
-    // Fetch OKX funding
-    const okxSymbol = COIN_MAP_OKX(coin);
-    const or = await fetch(`https://www.okx.com/api/v5/public/funding-rate?instId=${okxSymbol}`);
+    // Fetch Bitget funding
+    const bitgetSymbol = COIN_MAP_BITGET(coin);
+    const or = await fetch(`https://api.bitget.com/api/v2/mix/market/current-fund-rate?symbol=${bitgetSymbol}&productType=USDT-FUTURES`);
     const oj = await or.json();
-    if (oj.code === '0' && oj.data?.length > 0) {
+    if (oj.code === '00000' && oj.data?.length > 0) {
       const oRate = parseFloat(oj.data[0].fundingRate);
-      document.getElementById('wsotOkxFr').value = (oRate * 100).toFixed(4);
+      document.getElementById('wsotBitgetFr').value = (oRate * 100).toFixed(4);
     }
     statusEl.textContent = `✓ 已抓取 ${coin} 雙平台資金費率 — ${new Date().toLocaleTimeString()}`;
     statusEl.style.color = 'var(--green)';
@@ -1590,11 +1589,11 @@ function wsotCalculate() {
   const feeRate = parseFloat(document.getElementById('wsotFeeRate').value) / 100 || 0.0002;
   const holdDays = parseFloat(document.getElementById('wsotHoldDays').value) || 0;
   const bybitFrPct = parseFloat(document.getElementById('wsotBybitFr').value) / 100 || 0;
-  const okxFrPct = parseFloat(document.getElementById('wsotOkxFr').value) / 100 || 0;
+  const bitgetFrPct = parseFloat(document.getElementById('wsotBitgetFr').value) / 100 || 0;
 
-  // === Read OKX inputs ===
-  const okxCapital = parseFloat(document.getElementById('wsotOkxCapital').value) || 1000;
-  const levOkx = parseFloat(document.getElementById('wsotLevOkx').value) || 5;
+  // === Read Bitget inputs ===
+  const bitgetCapital = parseFloat(document.getElementById('wsotBitgetCapital').value) || 1000;
+  const levBitget = parseFloat(document.getElementById('wsotLevBitget').value) || 5;
 
   // === 方向驗證：自動檢查止盈/止損是否符合方向邏輯 ===
   let validatedTp = bybitTp;
@@ -1630,22 +1629,22 @@ function wsotCalculate() {
 
   // === Derived values ===
   const bybitPos = bybitPosVal;
-  const okxPos = bybitPosVal; // OKX 對沖倉位 = Bybit 倉位（完全對沖）
-  const okxDir = wsotDirection === 'long' ? '做空 ▼' : '做多 ▲';
-  const okxDirColor = wsotDirection === 'long' ? 'var(--red)' : 'var(--green)';
+  const bitgetPos = bybitPosVal; // Bitget 對沖倉位 = Bybit 倉位（完全對沖）
+  const bitgetDir = wsotDirection === 'long' ? '做空 ▼' : '做多 ▲';
+  const bitgetDirColor = wsotDirection === 'long' ? 'var(--red)' : 'var(--green)';
 
-  // OKX entry = same as Bybit entry
-  const okxEntry = bybitEntry;
+  // Bitget entry = same as Bybit entry
+  const bitgetEntry = bybitEntry;
 
-  // OKX TP/SL = Bybit SL/TP (opposite) — 使用驗證過的值
-  // When Bybit long hits SL (price drops), OKX short profits → OKX TP = Bybit SL
-  // When Bybit long hits TP (price rises), OKX short loses → OKX SL = Bybit TP
-  const okxTp = validatedSl; // OKX profits when Bybit stops out
-  const okxSl = validatedTp; // OKX stops out when Bybit profits
+  // Bitget TP/SL = Bybit SL/TP (opposite) — 使用驗證過的值
+  // When Bybit long hits SL (price drops), Bitget short profits → Bitget TP = Bybit SL
+  // When Bybit long hits TP (price rises), Bitget short loses → Bitget SL = Bybit TP
+  const bitgetTp = validatedSl; // Bitget profits when Bybit stops out
+  const bitgetSl = validatedTp; // Bitget stops out when Bybit profits
 
   // Liquidation distances
   const bybitLiqPct = (1 / levBybit) * 100 * 0.95;
-  const okxLiqPct = (1 / levOkx) * 100 * 0.95;
+  const bitgetLiqPct = (1 / levBitget) * 100 * 0.95;
 
   // Bybit TP/SL percentages — 使用驗證過的值
   let bybitTpPct = 0, bybitSlPct = 0;
@@ -1674,29 +1673,29 @@ function wsotCalculate() {
   // === Fee calculation ===
   // Bybit side fee
   const bybitFeeRate = wsotBybitOrder === 'limit' ? feeRate : (feeRate * 2.5); // taker ~0.05%
-  const okxFeeRate = wsotOkxOrder === 'limit' ? feeRate : (feeRate * 2.5);
+  const bitgetFeeRate = wsotBitgetOrder === 'limit' ? feeRate : (feeRate * 2.5);
   const bybitFee = bybitPos * bybitFeeRate * 2; // open + close
-  const okxFee = okxPos * okxFeeRate * 2;
-  const totalFee = bybitFee + okxFee;
+  const bitgetFee = bitgetPos * bitgetFeeRate * 2;
+  const totalFee = bybitFee + bitgetFee;
 
   // === Funding rate ===
   const settlements = holdDays * 3;
-  let bybitFrPerSettle, okxFrPerSettle;
+  let bybitFrPerSettle, bitgetFrPerSettle;
   if (wsotDirection === 'long') {
     bybitFrPerSettle = bybitPos * bybitFrPct;     // long pays
-    okxFrPerSettle = -(okxPos * okxFrPct);         // short receives
+    bitgetFrPerSettle = -(bitgetPos * bitgetFrPct);         // short receives
   } else {
     bybitFrPerSettle = -(bybitPos * bybitFrPct);   // short receives
-    okxFrPerSettle = okxPos * okxFrPct;             // long pays
+    bitgetFrPerSettle = bitgetPos * bitgetFrPct;             // long pays
   }
   const bybitFundingTotal = bybitFrPerSettle * settlements;
-  const okxFundingTotal = okxFrPerSettle * settlements;
-  const netFundingTotal = bybitFundingTotal + okxFundingTotal;
+  const bitgetFundingTotal = bitgetFrPerSettle * settlements;
+  const netFundingTotal = bybitFundingTotal + bitgetFundingTotal;
   const totalCostVal = totalFee + netFundingTotal;
 
   // === PnL calculation for TP and SL scenarios ===
   function calcPnl(targetPrice) {
-    if (!targetPrice || !bybitEntry) return { bybitPnl: 0, okxPnl: 0, netPnl: 0, wsotRoi: 0 };
+    if (!targetPrice || !bybitEntry) return { bybitPnl: 0, bitgetPnl: 0, netPnl: 0, wsotRoi: 0 };
     const move = (targetPrice - bybitEntry) / bybitEntry;
 
     // Bybit PnL
@@ -1704,93 +1703,93 @@ function wsotCalculate() {
     const bybitMaxLoss = -deposit;
     if (bybitPnl < bybitMaxLoss) bybitPnl = bybitMaxLoss;
 
-    // OKX PnL (opposite direction)
-    let okxPnl = wsotDirection === 'long' ? okxPos * (-move) : okxPos * move;
-    const okxMaxLoss = -okxCapital;
-    if (okxPnl < okxMaxLoss) okxPnl = okxMaxLoss;
+    // Bitget PnL (opposite direction)
+    let bitgetPnl = wsotDirection === 'long' ? bitgetPos * (-move) : bitgetPos * move;
+    const bitgetMaxLoss = -bitgetCapital;
+    if (bitgetPnl < bitgetMaxLoss) bitgetPnl = bitgetMaxLoss;
 
-    const netPnl = bybitPnl + okxPnl - totalCostVal;
+    const netPnl = bybitPnl + bitgetPnl - totalCostVal;
     const wsotRoiPrice = (bybitPnl / deposit) * 100; // 純價格損益 ROI
     const wsotRoi = ((bybitPnl - bybitFundingTotal) / deposit) * 100; // 含資金費率
 
-    return { bybitPnl, okxPnl, netPnl, wsotRoi, wsotRoiPrice };
+    return { bybitPnl, bitgetPnl, netPnl, wsotRoi, wsotRoiPrice };
   }
 
   const tpResult = calcPnl(validatedTp);
   const slResult = calcPnl(validatedSl);
 
-  // OKX PnL at TP/SL
-  const okxTpPnl = slResult.okxPnl; // When Bybit hits SL, OKX profits
-  const okxSlPnl = tpResult.okxPnl; // When Bybit hits TP, OKX loses
+  // Bitget PnL at TP/SL
+  const bitgetTpPnl = slResult.bitgetPnl; // When Bybit hits SL, Bitget profits
+  const bitgetSlPnl = tpResult.bitgetPnl; // When Bybit hits TP, Bitget loses
 
-  // === Update OKX panel ===
-  document.getElementById('wsotOkxDir').innerHTML = `<span style="color:${okxDirColor};">${okxDir}</span>`;
-  document.getElementById('wsotOkxPosVal').textContent = '$' + fmtNum(okxPos);
-  document.getElementById('wsotOkxEntry').textContent = bybitEntry ? fmtPrice(okxEntry) : '—';
-  document.getElementById('wsotOkxLiq').textContent = okxLiqPct.toFixed(1) + '%';
-  document.getElementById('wsotOkxLiq').style.color = okxLiqPct < 5 ? 'var(--red)' : okxLiqPct < 15 ? 'var(--accent2)' : 'var(--green)';
+  // === Update Bitget panel ===
+  document.getElementById('wsotBitgetDir').innerHTML = `<span style="color:${bitgetDirColor};">${bitgetDir}</span>`;
+  document.getElementById('wsotBitgetPosVal').textContent = '$' + fmtNum(bitgetPos);
+  document.getElementById('wsotBitgetEntry').textContent = bybitEntry ? fmtPrice(bitgetEntry) : '—';
+  document.getElementById('wsotBitgetLiq').textContent = bitgetLiqPct.toFixed(1) + '%';
+  document.getElementById('wsotBitgetLiq').style.color = bitgetLiqPct < 5 ? 'var(--red)' : bitgetLiqPct < 15 ? 'var(--accent2)' : 'var(--green)';
 
-  document.getElementById('wsotOkxTp').textContent = okxTp ? fmtPrice(okxTp) : '—';
-  document.getElementById('wsotOkxSl').textContent = okxSl ? fmtPrice(okxSl) : '—';
-  document.getElementById('wsotOkxTpPnl').textContent = okxTp ? ((okxTpPnl >= 0 ? '+' : '') + fmt(okxTpPnl)) : '—';
-  document.getElementById('wsotOkxTpPnl').style.color = okxTpPnl >= 0 ? 'var(--green)' : 'var(--red)';
-  document.getElementById('wsotOkxSlPnl').textContent = okxSl ? ((okxSlPnl >= 0 ? '+' : '') + fmt(okxSlPnl)) : '—';
-  document.getElementById('wsotOkxSlPnl').style.color = okxSlPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('wsotBitgetTp').textContent = bitgetTp ? fmtPrice(bitgetTp) : '—';
+  document.getElementById('wsotBitgetSl').textContent = bitgetSl ? fmtPrice(bitgetSl) : '—';
+  document.getElementById('wsotBitgetTpPnl').textContent = bitgetTp ? ((bitgetTpPnl >= 0 ? '+' : '') + fmt(bitgetTpPnl)) : '—';
+  document.getElementById('wsotBitgetTpPnl').style.color = bitgetTpPnl >= 0 ? 'var(--green)' : 'var(--red)';
+  document.getElementById('wsotBitgetSlPnl').textContent = bitgetSl ? ((bitgetSlPnl >= 0 ? '+' : '') + fmt(bitgetSlPnl)) : '—';
+  document.getElementById('wsotBitgetSlPnl').style.color = bitgetSlPnl >= 0 ? 'var(--green)' : 'var(--red)';
 
-  // === Break-even OKX TP calculation ===
-  // When Bybit hits SL, OKX should profit enough to cover: Bybit loss + all costs
-  // Net PnL = bybitPnl(at SL) + okxPnl(at adjusted TP) - totalCosts = 0
-  // bybitPnl at SL is fixed. We need: okxPnl = -bybitPnl + totalCosts
-  // For OKX short (Bybit long): okxPnl = okxPos × (entry - adjTpPrice) / entry
-  // So: okxPos × (entry - adjTpPrice) / entry = -bybitPnl + totalCosts
-  // entry - adjTpPrice = (-bybitPnl + totalCosts) × entry / okxPos
-  // adjTpPrice = entry - (-bybitPnl + totalCosts) × entry / okxPos
-  let adjOkxTp = 0;
+  // === Break-even Bitget TP calculation ===
+  // When Bybit hits SL, Bitget should profit enough to cover: Bybit loss + all costs
+  // Net PnL = bybitPnl(at SL) + bitgetPnl(at adjusted TP) - totalCosts = 0
+  // bybitPnl at SL is fixed. We need: bitgetPnl = -bybitPnl + totalCosts
+  // For Bitget short (Bybit long): bitgetPnl = bitgetPos × (entry - adjTpPrice) / entry
+  // So: bitgetPos × (entry - adjTpPrice) / entry = -bybitPnl + totalCosts
+  // entry - adjTpPrice = (-bybitPnl + totalCosts) × entry / bitgetPos
+  // adjTpPrice = entry - (-bybitPnl + totalCosts) × entry / bitgetPos
+  let adjBitgetTp = 0;
   let costToRecover = totalCostVal; // total fees + funding
-  if (bybitEntry > 0 && validatedSl > 0 && okxPos > 0) {
+  if (bybitEntry > 0 && validatedSl > 0 && bitgetPos > 0) {
     const bybitPnlAtSl = slResult.bybitPnl; // negative when wrong direction
-    // We want: bybitPnlAtSl + adjOkxPnl - totalCostVal = 0
-    // adjOkxPnl = totalCostVal - bybitPnlAtSl
-    const requiredOkxPnl = totalCostVal - bybitPnlAtSl; // bybitPnlAtSl is negative, so this adds
-    // Actually we want net = 0: bybitPnl + okxPnl = totalCostVal
-    // okxPnl needed = totalCostVal - bybitPnlAtSl (bybitPnlAtSl is negative)
-    // For OKX short: okxPnl = okxPos × (entry - price) / entry
-    // required price: okxPos × (entry - adjTp) / entry = requiredOkxPnl
-    // entry - adjTp = requiredOkxPnl × entry / okxPos
-    // adjTp = entry - requiredOkxPnl × entry / okxPos
+    // We want: bybitPnlAtSl + adjBitgetPnl - totalCostVal = 0
+    // adjBitgetPnl = totalCostVal - bybitPnlAtSl
+    const requiredBitgetPnl = totalCostVal - bybitPnlAtSl; // bybitPnlAtSl is negative, so this adds
+    // Actually we want net = 0: bybitPnl + bitgetPnl = totalCostVal
+    // bitgetPnl needed = totalCostVal - bybitPnlAtSl (bybitPnlAtSl is negative)
+    // For Bitget short: bitgetPnl = bitgetPos × (entry - price) / entry
+    // required price: bitgetPos × (entry - adjTp) / entry = requiredBitgetPnl
+    // entry - adjTp = requiredBitgetPnl × entry / bitgetPos
+    // adjTp = entry - requiredBitgetPnl × entry / bitgetPos
 
     if (wsotDirection === 'long') {
-      // OKX is short, profits when price drops
-      adjOkxTp = bybitEntry - (requiredOkxPnl * bybitEntry / okxPos);
+      // Bitget is short, profits when price drops
+      adjBitgetTp = bybitEntry - (requiredBitgetPnl * bybitEntry / bitgetPos);
     } else {
-      // OKX is long, profits when price rises
-      adjOkxTp = bybitEntry + (requiredOkxPnl * bybitEntry / okxPos);
+      // Bitget is long, profits when price rises
+      adjBitgetTp = bybitEntry + (requiredBitgetPnl * bybitEntry / bitgetPos);
     }
   }
 
   // Display break-even info
-  document.getElementById('wsotOkxTpAdj').textContent = adjOkxTp > 0 ? fmtPrice(adjOkxTp) : '—';
+  document.getElementById('wsotBitgetTpAdj').textContent = adjBitgetTp > 0 ? fmtPrice(adjBitgetTp) : '—';
   document.getElementById('wsotCostToRecover').textContent = '$' + fmt(Math.abs(costToRecover));
   document.getElementById('wsotCostToRecover').style.color = 'var(--red)';
 
   // Calculate adjusted net PnL (should be ~0)
-  if (adjOkxTp > 0 && validatedSl > 0) {
+  if (adjBitgetTp > 0 && validatedSl > 0) {
     const adjResult = calcPnl(validatedSl);
-    // Recalculate OKX PnL at adjusted TP price
-    const adjOkxMove = (adjOkxTp - bybitEntry) / bybitEntry;
-    const adjOkxPnl = wsotDirection === 'long' ? okxPos * (-adjOkxMove) : okxPos * adjOkxMove;
-    const adjNet = adjResult.bybitPnl + adjOkxPnl - totalCostVal;
+    // Recalculate Bitget PnL at adjusted TP price
+    const adjBitgetMove = (adjBitgetTp - bybitEntry) / bybitEntry;
+    const adjBitgetPnl = wsotDirection === 'long' ? bitgetPos * (-adjBitgetMove) : bitgetPos * adjBitgetMove;
+    const adjNet = adjResult.bybitPnl + adjBitgetPnl - totalCostVal;
     document.getElementById('wsotAdjNetPnl').textContent = (adjNet >= 0 ? '+' : '') + fmt(adjNet);
     document.getElementById('wsotAdjNetPnl').style.color = adjNet >= 0 ? 'var(--green)' : 'var(--red)';
 
-    const priceDiff = Math.abs(adjOkxTp - okxTp);
+    const priceDiff = Math.abs(adjBitgetTp - bitgetTp);
     const priceDiffPct = (priceDiff / bybitEntry * 100).toFixed(3);
     document.getElementById('wsotAdjDiff').textContent = fmtPrice(priceDiff) + ' (' + priceDiffPct + '%)';
     document.getElementById('wsotAdjDiff').style.color = 'var(--accent2)';
 
     const adjDir = wsotDirection === 'long' ? '低於' : '高於';
     document.getElementById('wsotAdjInfo').innerHTML =
-      `OKX 止盈設在 <strong style="color:var(--green);">${fmtPrice(adjOkxTp)}</strong>（比 Bybit 止損價${adjDir} ${fmtPrice(priceDiff)}），即可覆蓋 $${fmt(totalCostVal)} 的手續費+資金費率成本，看錯方向也能打平`;
+      `Bitget 止盈設在 <strong style="color:var(--green);">${fmtPrice(adjBitgetTp)}</strong>（比 Bybit 止損價${adjDir} ${fmtPrice(priceDiff)}），即可覆蓋 $${fmt(totalCostVal)} 的手續費+資金費率成本，看錯方向也能打平`;
     document.getElementById('wsotAdjInfo').style.color = 'var(--green)';
   } else {
     document.getElementById('wsotAdjNetPnl').textContent = '—';
@@ -1799,15 +1798,15 @@ function wsotCalculate() {
     document.getElementById('wsotAdjInfo').style.color = 'var(--muted)';
   }
 
-  // OKX info
-  const okxMarginNeeded = okxPos / levOkx;
-  let okxInfo = `OKX 需保證金 $${fmt(okxMarginNeeded)}（${levOkx}x 槓桿），`;
-  if (okxMarginNeeded > okxCapital) {
-    okxInfo += `<span style="color:var(--red);">⚠ 資金不足！差 $${fmt(okxMarginNeeded - okxCapital)}</span>`;
+  // Bitget info
+  const bitgetMarginNeeded = bitgetPos / levBitget;
+  let bitgetInfo = `Bitget 需保證金 $${fmt(bitgetMarginNeeded)}（${levBitget}x 槓桿），`;
+  if (bitgetMarginNeeded > bitgetCapital) {
+    bitgetInfo += `<span style="color:var(--red);">⚠ 資金不足！差 $${fmt(bitgetMarginNeeded - bitgetCapital)}</span>`;
   } else {
-    okxInfo += `<span style="color:var(--green);">✓ 資金充足，剩餘 $${fmt(okxCapital - okxMarginNeeded)}</span>`;
+    bitgetInfo += `<span style="color:var(--green);">✓ 資金充足，剩餘 $${fmt(bitgetCapital - bitgetMarginNeeded)}</span>`;
   }
-  document.getElementById('wsotOkxInfo').innerHTML = okxInfo;
+  document.getElementById('wsotBitgetInfo').innerHTML = bitgetInfo;
 
   // === Update result boxes ===
   const roiTpEl = document.getElementById('wsotRoiTp');
@@ -1835,11 +1834,11 @@ function wsotCalculate() {
   netSlEl.style.color = slResult.netPnl >= 0 ? 'var(--green)' : 'var(--red)';
 
   document.getElementById('wsotBybitPos').textContent = '$' + fmtNum(bybitPos);
-  document.getElementById('wsotOkxPos').textContent = '$' + fmtNum(okxPos);
+  document.getElementById('wsotBitgetPos').textContent = '$' + fmtNum(bitgetPos);
   document.getElementById('wsotBybitLiq').textContent = bybitLiqPct.toFixed(1) + '%';
   document.getElementById('wsotBybitLiq').style.color = bybitLiqPct < 3 ? 'var(--red)' : bybitLiqPct < 10 ? 'var(--accent2)' : 'var(--green)';
 
-  const totalCapital = deposit + okxCapital;
+  const totalCapital = deposit + bitgetCapital;
   document.getElementById('wsotTotalCapital').textContent = '$' + fmt(totalCapital);
 
   document.getElementById('wsotFeeCost').textContent = '-$' + fmt(totalFee);
@@ -1859,15 +1858,15 @@ function wsotCalculate() {
   // === Info box ===
   let tips = `<strong>📊 對沖方案分析：</strong><br>`;
   tips += `• Bybit ${wsotDirection === 'long' ? '做多' : '做空'} $${fmtNum(bybitPos)}，入金 $${fmt(deposit)}，${levBybit}x 槓桿，爆倉距離 ${bybitLiqPct.toFixed(1)}%<br>`;
-  tips += `• OKX ${wsotDirection === 'long' ? '做空' : '做多'} $${fmtNum(okxPos)}，資金 $${fmt(okxCapital)}，${levOkx}x 槓桿，爆倉距離 ${okxLiqPct.toFixed(1)}%<br>`;
+  tips += `• Bitget ${wsotDirection === 'long' ? '做空' : '做多'} $${fmtNum(bitgetPos)}，資金 $${fmt(bitgetCapital)}，${levBitget}x 槓桿，爆倉距離 ${bitgetLiqPct.toFixed(1)}%<br>`;
   if (validatedTp && validatedSl) {
     tips += `<br><strong>🎯 止盈止損情境：</strong><br>`;
-    tips += `• <span style="color:var(--green);">看對（Bybit 止盈）：</span>Bybit ${tpResult.bybitPnl >= 0 ? '+' : ''}${fmt(tpResult.bybitPnl)}，OKX ${tpResult.okxPnl >= 0 ? '+' : ''}${fmt(tpResult.okxPnl)}，淨 ${tpResult.netPnl >= 0 ? '+' : ''}${fmt(tpResult.netPnl)}，WSOT ROI ${tpResult.wsotRoi >= 0 ? '+' : ''}${tpResult.wsotRoi.toFixed(1)}%<br>`;
-    tips += `• <span style="color:var(--red);">看錯（Bybit 止損）：</span>Bybit ${slResult.bybitPnl >= 0 ? '+' : ''}${fmt(slResult.bybitPnl)}，OKX ${slResult.okxPnl >= 0 ? '+' : ''}${fmt(slResult.okxPnl)}，淨 ${slResult.netPnl >= 0 ? '+' : ''}${fmt(slResult.netPnl)}<br>`;
+    tips += `• <span style="color:var(--green);">看對（Bybit 止盈）：</span>Bybit ${tpResult.bybitPnl >= 0 ? '+' : ''}${fmt(tpResult.bybitPnl)}，Bitget ${tpResult.bitgetPnl >= 0 ? '+' : ''}${fmt(tpResult.bitgetPnl)}，淨 ${tpResult.netPnl >= 0 ? '+' : ''}${fmt(tpResult.netPnl)}，WSOT ROI ${tpResult.wsotRoi >= 0 ? '+' : ''}${tpResult.wsotRoi.toFixed(1)}%<br>`;
+    tips += `• <span style="color:var(--red);">看錯（Bybit 止損）：</span>Bybit ${slResult.bybitPnl >= 0 ? '+' : ''}${fmt(slResult.bybitPnl)}，Bitget ${slResult.bitgetPnl >= 0 ? '+' : ''}${fmt(slResult.bitgetPnl)}，淨 ${slResult.netPnl >= 0 ? '+' : ''}${fmt(slResult.netPnl)}<br>`;
   }
   tips += `<br><strong>💰 成本明細：</strong><br>`;
   tips += `• Bybit 手續費：$${fmt(bybitFee)}（${wsotBybitOrder === 'limit' ? '限價單' : '市價單'}，開+平）<br>`;
-  tips += `• OKX 手續費：$${fmt(okxFee)}（${wsotOkxOrder === 'limit' ? '限價單' : '市價單'}，開+平）<br>`;
+  tips += `• Bitget 手續費：$${fmt(bitgetFee)}（${wsotBitgetOrder === 'limit' ? '限價單' : '市價單'}，開+平）<br>`;
   if (holdDays > 0) {
     tips += `• 資金費率（${holdDays}天 × ${settlements}次）：${netFundingTotal >= 0 ? '支出' : '收入'} $${fmt(Math.abs(netFundingTotal))}<br>`;
   }
@@ -1875,8 +1874,8 @@ function wsotCalculate() {
   if (bybitLiqPct < 3) {
     tips += `<br><span style="color:var(--red);">⚠ Bybit 爆倉距離僅 ${bybitLiqPct.toFixed(1)}%，高波動幣可能來不及止損就爆倉</span><br>`;
   }
-  if (okxLiqPct < 10) {
-    tips += `<span style="color:var(--accent2);">⚠ OKX 爆倉距離 ${okxLiqPct.toFixed(1)}%，建議降低槓桿確保保險不斷</span><br>`;
+  if (bitgetLiqPct < 10) {
+    tips += `<span style="color:var(--accent2);">⚠ Bitget 爆倉距離 ${bitgetLiqPct.toFixed(1)}%，建議降低槓桿確保保險不斷</span><br>`;
   }
   document.getElementById('wsotInfoBox').innerHTML = tips;
 }
