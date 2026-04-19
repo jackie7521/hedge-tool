@@ -82,7 +82,6 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
 .summary-box .label{font-size:.75rem;color:var(--muted);margin-bottom:6px;}
 .summary-box .value{font-size:1.3rem;font-weight:700;font-family:'SF Mono',monospace;}
 .info-box{background:rgba(0,212,170,.06);border-left:3px solid var(--accent);border-radius:0 8px 8px 0;padding:14px 18px;margin-top:18px;font-size:.8rem;color:var(--muted);line-height:1.6;}
-#calcResults{display:none;}
 
 /* ===== LEADERBOARD PAGE ===== */
 .lb-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;}
@@ -181,17 +180,13 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
       漲跌榜
     </button>
-    <button class="nav-tab" onclick="switchPage('calculator',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="10" y2="10"/><line x1="14" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="14" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="16" y2="18"/></svg>
-      對沖計算器
+    <button class="nav-tab" onclick="switchPage('wsot',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      WSOT 模擬
     </button>
     <button class="nav-tab" onclick="switchPage('positions',this)">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 14l2 2 4-4"/></svg>
       倉位管理 <span class="pos-count-badge" id="navPosCount" style="display:none;background:var(--accent);color:#0b0e11;font-size:.65rem;padding:1px 6px;border-radius:99px;font-weight:700;margin-left:2px;"></span>
-    </button>
-    <button class="nav-tab" onclick="switchPage('wsot',this)">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-      WSOT 模擬
     </button>
   </div>
   <div class="nav-right">
@@ -256,86 +251,6 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
 </div>
 
 <!-- ==================== PAGE: CALCULATOR ==================== -->
-<div class="page" id="page-calculator">
-  <h2 style="text-align:center;font-size:1.5rem;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Bitget / Bybit 合約對沖成本計算器</h2>
-  <p style="text-align:center;color:var(--muted);font-size:.85rem;margin-bottom:20px;">永續合約雙平台對沖 — 手續費 / 資金費率 / 滑點 / 提幣費用 即時試算</p>
-
-  <div class="status-bar">
-    <span class="live-dot" id="apiDot"></span>
-    <span id="apiStatus">點擊「即時抓取」取得最新費率與價格</span>
-  </div>
-
-  <div class="calc-grid">
-    <!-- 左欄 -->
-    <div class="card">
-      <div class="card-title">基本參數</div>
-      <div class="form-row">
-        <label>交易對</label>
-        <input type="text" id="coin" value="ETH" placeholder="輸入幣種代號" list="coinList" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" onchange="onCoinChange()">
-        <datalist id="coinList"><option value="BTC"><option value="ETH"><option value="SOL"><option value="XRP"><option value="DOGE"><option value="PEPE"><option value="SUI"><option value="AVAX"><option value="ADA"><option value="LINK"><option value="OP"><option value="ARB"><option value="APT"><option value="SEI"><option value="TIA"><option value="INJ"><option value="NEAR"><option value="TON"><option value="TRUMP"><option value="PENDLE"><option value="AAVE"><option value="UNI"></datalist>
-        <span class="unit">/ USDT</span>
-        <button class="btn-fetch" id="btnFetchAll" onclick="fetchAllLive()">即時抓取</button>
-      </div>
-      <div class="api-status" style="margin-bottom:8px;">輸入任意幣種代號，API 自動匹配永續合約</div>
-      <div class="form-row"><label>開倉價格</label><input type="number" id="entryPrice" value="1800" step="any"><span class="unit">USDT</span></div>
-      <div class="form-row"><label>倉位大小</label><input type="number" id="positionUsdt" value="10000" step="any"><span class="unit">USDT</span></div>
-      <div class="form-row"><label>合約槓桿 (A)</label><input type="number" id="leverageA" value="3" min="1" max="125" step="1"><span class="unit">x</span></div>
-      <div class="form-row"><label>合約槓桿 (B)</label><input type="number" id="leverageB" value="3" min="1" max="125" step="1"><span class="unit">x</span></div>
-      <div class="form-row"><label>持倉天數</label><input type="number" id="holdDays" value="7" min="1" step="1"><span class="unit">天</span></div>
-      <hr class="divider">
-      <div class="section-label">對沖方向</div>
-      <div class="form-row"><label>平台 A — 做多</label><select id="platformA"><option value="bitget">Bitget</option><option value="bybit">Bybit</option></select></div>
-      <div class="form-row"><label>平台 B — 做空</label><select id="platformB"><option value="bybit">Bybit</option><option value="bitget">Bitget</option></select></div>
-      <div class="form-row"><label>下單方式</label><div class="toggle-row" style="flex:1;"><button class="toggle-btn active" onclick="setOrder('maker',this)">限價單</button><button class="toggle-btn" onclick="setOrder('taker',this)">市價單</button></div></div>
-      <hr class="divider">
-      <div class="section-label">跨平台轉帳</div>
-      <div class="form-row"><label>提幣次數</label><select id="needTransfer"><option value="1">1 次（單向轉帳）</option><option value="2">2 次（雙向轉帳）</option><option value="0">0 次（資金已到位）</option></select></div>
-      <div class="form-row"><label>提幣費 / 次</label><input type="number" id="withdrawFee" value="1.0" step="0.1"><span class="unit">USDT</span></div>
-    </div>
-    <!-- 右欄 -->
-    <div class="card">
-      <div class="card-title">費率設定 <span class="badge badge-bitget">Bitget</span> <span class="badge badge-bybit">Bybit</span></div>
-      <div class="section-label" style="color:var(--green);">Bitget 合約費率</div>
-      <div class="form-row"><label>限價單 (Maker)</label><input type="number" id="bitgetFutMaker" value="0.02" step="0.001"><span class="unit">%</span></div>
-      <div class="form-row"><label>市價單 (Taker)</label><input type="number" id="bitgetFutTaker" value="0.06" step="0.001"><span class="unit">%</span></div>
-      <div class="form-row"><label>資金費率</label><input type="number" id="bitgetFunding" value="0.0038" step="0.0001"><span class="unit">% / 8hr</span><button class="btn-fetch" id="btnBitgetFr" onclick="fetchBitgetFunding()">抓取</button></div>
-      <div class="api-status" id="bitgetFrStatus"></div>
-      <hr class="divider">
-      <div class="section-label" style="color:var(--accent2);">Bybit 合約費率</div>
-      <div class="form-row"><label>限價單 (Maker)</label><input type="number" id="bybitFutMaker" value="0.02" step="0.001"><span class="unit">%</span></div>
-      <div class="form-row"><label>市價單 (Taker)</label><input type="number" id="bybitFutTaker" value="0.055" step="0.001"><span class="unit">%</span></div>
-      <div class="form-row"><label>資金費率</label><input type="number" id="bybitFunding" value="0.01" step="0.0001"><span class="unit">% / 8hr</span><button class="btn-fetch" id="btnBybitFr" onclick="fetchBybitFunding()">抓取</button></div>
-      <div class="api-status" id="bybitFrStatus"></div>
-      <hr class="divider">
-      <div class="section-label">滑點預估</div>
-      <div class="form-row"><label>開倉滑點</label><input type="number" id="slippageOpen" value="0.03" step="0.001"><span class="unit">%</span></div>
-      <div class="form-row"><label>平倉滑點</label><input type="number" id="slippageClose" value="0.05" step="0.001"><span class="unit">%</span></div>
-      <p class="fee-ref">* 手續費已預填 2026/04 普通用戶等級，VIP 用戶請自行修改</p>
-      <p class="fee-ref">* 資金費率每 8 小時變動，點擊「即時抓取」取得最新值</p>
-    </div>
-  </div>
-  <div style="display:flex;gap:12px;margin-bottom:20px;">
-    <button class="btn-main" onclick="calculate()" style="margin-bottom:0;">計算對沖成本</button>
-    <button class="btn-main" onclick="confirmOrder()" style="margin-bottom:0;background:linear-gradient(135deg,var(--accent2),#e09800);flex:0 0 180px;">確認開單</button>
-  </div>
-  <div id="calcResults">
-    <div class="results-card">
-      <div class="results-title">成本明細表</div>
-      <table class="result-table"><thead><tr><th>費用項目</th><th>平台</th><th>計算公式</th><th class="val">金額 (USDT)</th></tr></thead><tbody id="resultBody"></tbody></table>
-    </div>
-    <div class="summary-grid">
-      <div class="summary-box"><div class="label">倉位名目價值</div><div class="value" id="sumNotional" style="color:var(--text);">—</div></div>
-      <div class="summary-box"><div class="label">對沖損益</div><div class="value" id="sumCost" style="color:var(--red);">—</div></div>
-      <div class="summary-box"><div class="label">損益佔倉位比</div><div class="value" id="sumPct" style="color:var(--accent2);">—</div></div>
-    </div>
-    <div class="summary-grid" style="margin-top:12px;">
-      <div class="summary-box"><div class="label">所需保證金 (A)</div><div class="value" id="marginA" style="color:var(--text);font-size:1.1rem;">—</div></div>
-      <div class="summary-box"><div class="label">所需保證金 (B)</div><div class="value" id="marginB" style="color:var(--text);font-size:1.1rem;">—</div></div>
-      <div class="summary-box"><div class="label">資金費率收支 / 8hr</div><div class="value" id="fundingNet" style="font-size:1.1rem;">—</div></div>
-    </div>
-    <div class="info-box" id="infoBox"></div>
-  </div>
-</div>
 
 <!-- ==================== PAGE: POSITIONS ==================== -->
 <div class="page" id="page-positions">
@@ -398,7 +313,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
         <thead><tr>
           <th>幣種</th><th>方向</th><th>平台</th><th>目標價</th><th>現價</th><th>價差</th><th>倉位 (USDT)</th><th>槓桿</th><th>狀態</th><th>操作</th>
         </tr></thead>
-        <tbody id="pendingBody"><tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">尚無掛單，請到「對沖計算器」按「確認開單」新增</td></tr></tbody>
+        <tbody id="pendingBody"><tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">尚無掛單</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -597,41 +512,29 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 2500);
 }
 
-// ==================== BRING COIN TO CALCULATOR ====================
-function goHedge(symbol, price, fundingRate) {
-  const rawCoin = symbol.replace('USDT', '');
-  // 存原始 Bybit 符號用於 Bybit API，計算器顯示轉換後名稱
-  const displayCoin = normalizeForBitget(rawCoin);
-  document.getElementById('coin').value = rawCoin;
-  document.getElementById('coin').dataset.bybitSymbol = symbol; // 保留完整 Bybit 符號
-  document.getElementById('entryPrice').value = price;
-  if (fundingRate !== undefined) {
-    document.getElementById('bybitFunding').value = (fundingRate * 100).toFixed(4);
-    setStatusEl('bybitFrStatus', `✓ Bybit ${rawCoin} 資金費率已從漲跌榜帶入: ${(fundingRate*100).toFixed(6)}%`, true);
-  }
-  // Switch to calculator page
-  const calcTab = document.querySelectorAll('.nav-tab')[1];
-  switchPage('calculator', calcTab);
-  showToast(`已帶入 ${rawCoin}/USDT — $${price}`);
-  // Auto fetch Bitget funding (will auto-normalize symbol)
-  fetchBitgetFunding();
-}
-
 // ==================== BRING COIN TO WSOT ====================
-function goWsot(symbol, price) {
+function goWsot(symbol, price, fundingRate) {
   const rawCoin = symbol.replace('USDT', '');
   document.getElementById('wsotCoin').value = rawCoin;
   document.getElementById('wsotBybitEntry').value = price;
+  // Auto-fill funding rate if available
+  if (fundingRate !== undefined) {
+    document.getElementById('wsotBybitFr').value = (fundingRate * 100).toFixed(4);
+  }
   // Auto-suggest TP/SL based on price (±10% / -2%)
   const tp = wsotDirection === 'long' ? (price * 1.10) : (price * 0.90);
   const sl = wsotDirection === 'long' ? (price * 0.98) : (price * 1.02);
   document.getElementById('wsotBybitTp').value = parseFloat(tp.toFixed(price >= 1 ? 2 : 8));
   document.getElementById('wsotBybitSl').value = parseFloat(sl.toFixed(price >= 1 ? 2 : 8));
-  const wsotTab = document.querySelectorAll('.nav-tab')[3];
+  const wsotTab = document.querySelectorAll('.nav-tab')[1];
   switchPage('wsot', wsotTab);
   wsotCalculate();
-  showToast(`WSOT 已帶入 ${rawCoin}/USDT — $${price}`);
+  // Fetch Bitget funding rate for this coin
+  fetchWsotFunding();
+  showToast(`已帶入 ${rawCoin}/USDT — $${price}`);
 }
+// Keep backward compatibility
+function goHedge(symbol, price, fundingRate) { goWsot(symbol, price, fundingRate); }
 
 // ==================== LEADERBOARD ====================
 let lbData = [];
@@ -746,14 +649,10 @@ function renderLb() {
     const fc=d.fundingRate>=0?'funding-pos':'funding-neg';
     const bitgetOk = isBitgetAvailable(d.symbol);
     const noBitgetBadge = bitgetOk ? '' : '<span style="font-size:.6rem;background:#3a1e1e;color:var(--red);padding:1px 6px;border-radius:99px;margin-left:6px;white-space:nowrap;">Bitget 無此合約</span>';
-    const btnDisabled = bitgetOk ? '' : 'disabled style="margin-left:4px;opacity:.35;cursor:not-allowed;pointer-events:none;"';
-    const btnHedge = bitgetOk
-      ? `<button class="hedge-btn" onclick="event.stopPropagation();goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})">對沖</button>`
-      : `<button class="hedge-btn" disabled style="opacity:.35;cursor:not-allowed;pointer-events:none;">對沖</button>`;
     const btnWsot = bitgetOk
-      ? `<button class="hedge-btn" style="margin-left:4px;border-color:var(--accent2);color:var(--accent2);" onclick="event.stopPropagation();goWsot('${d.symbol}',${d.lastPrice})">WSOT</button>`
-      : `<button class="hedge-btn" style="margin-left:4px;opacity:.35;cursor:not-allowed;pointer-events:none;border-color:var(--accent2);color:var(--accent2);" disabled>WSOT</button>`;
-    html+=`<tr ${bitgetOk ? `onclick="goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})"` : 'style="opacity:.8;"'}>
+      ? `<button class="hedge-btn" style="border-color:var(--accent2);color:var(--accent2);" onclick="event.stopPropagation();goWsot('${d.symbol}',${d.lastPrice},${d.fundingRate})">WSOT</button>`
+      : `<button class="hedge-btn" style="opacity:.35;cursor:not-allowed;pointer-events:none;border-color:var(--accent2);color:var(--accent2);" disabled>WSOT</button>`;
+    html+=`<tr ${bitgetOk ? `onclick="goWsot('${d.symbol}',${d.lastPrice},${d.fundingRate})"` : 'style="opacity:.8;"'}>
       <td><span class="rank ${rc}">${rk}</span></td>
       <td><div class="symbol-cell"><div><span class="symbol-name">${name}</span><span class="symbol-pair"> / USDT</span>${noBitgetBadge}</div></div></td>
       <td class="mono">${fmtPrice(d.lastPrice)}</td>
@@ -762,7 +661,7 @@ function renderLb() {
       <td class="mono dim">$${fmtNum(d.turnover24h)}</td>
       <td><span class="funding-badge ${fc}">${(d.fundingRate*100).toFixed(4)}%</span></td>
       <td class="mono dim">$${fmtNum(d.openInterestValue)}</td>
-      <td>${btnHedge}${btnWsot}</td>
+      <td>${btnWsot}</td>
     </tr>`;
   });
   if(!html)html='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
@@ -776,14 +675,11 @@ function renderLb() {
   autoTimer=setInterval(loadLeaderboard,30000);
 })();
 
-// ==================== CALCULATOR ====================
-let orderType='maker';
-function setOrder(t,el){orderType=t;document.querySelectorAll('.toggle-btn').forEach(b=>b.classList.remove('active'));el.classList.add('active');}
+// ==================== SHARED UTILITIES ====================
 function v(id){return parseFloat(document.getElementById(id).value)||0;}
 function s(id){return document.getElementById(id).value;}
 function fmt(n){return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:4});}
 function fmtPct(n){return n.toFixed(4)+'%';}
-function v_coin(){return document.getElementById('coin').value.trim().toUpperCase();}
 
 // Bybit 與 Bitget 符號轉換：處理 1000PEPE → PEPE、1000SHIB → SHIB 等差異
 const BYBIT_TO_BITGET_MAP = {
@@ -805,128 +701,6 @@ const COIN_MAP_BYBIT=(c)=> c.includes('USDT') ? c : `${c}USDT`;
 function setStatusEl(id,text,ok){const el=document.getElementById(id);el.textContent=text;el.style.color=ok?'var(--green)':'var(--red)';}
 function setBtnState(btn,state){btn.classList.remove('loading','success','fail');if(state)btn.classList.add(state);btn.textContent=state==='loading'?'抓取中…':'抓取';}
 
-async function fetchBitgetFunding(){
-  const btn=document.getElementById('btnBitgetFr');const coin=v_coin();
-  if(!coin){setStatusEl('bitgetFrStatus','✗ 請先輸入幣種代號',false);setBtnState(btn,'fail');return;}
-  setBtnState(btn,'loading');
-  try{
-    const r=await fetch(`https://api.bitget.com/api/v2/mix/market/current-fund-rate?symbol=${COIN_MAP_BITGET(coin)}&productType=USDT-FUTURES`);
-    const j=await r.json();
-    if(j.code==='00000'&&j.data&&j.data.length>0){
-      const rate=parseFloat(j.data[0].fundingRate);
-      document.getElementById('bitgetFunding').value=(rate*100).toFixed(4);
-      setStatusEl('bitgetFrStatus',`✓ Bitget ${coin} 資金費率: ${(rate*100).toFixed(6)}% — ${new Date().toLocaleTimeString()}`,true);
-      setBtnState(btn,'success');
-      try{const pr=await fetch(`https://api.bitget.com/api/v2/mix/market/ticker?symbol=${COIN_MAP_BITGET(coin)}&productType=USDT-FUTURES`);const pj=await pr.json();if(pj.code==='00000'&&pj.data&&pj.data.length>0)document.getElementById('entryPrice').value=parseFloat(pj.data[0].markPrice).toFixed(2);}catch(e){}
-    }else throw new Error(j.msg||'No data');
-  }catch(e){
-    const bitgetSymbol = COIN_MAP_BITGET(coin);
-    let errMsg = e.message;
-    if (errMsg.includes('Instrument') || errMsg.includes('不存在')) {
-      errMsg = `Bitget 無此合約 (${bitgetSymbol})，該幣可能僅在 Bybit 上架，請手動輸入費率`;
-    }
-    setStatusEl('bitgetFrStatus',`✗ ${errMsg}`,false);setBtnState(btn,'fail');
-  }
-}
-
-async function fetchBybitFunding(){
-  const btn=document.getElementById('btnBybitFr');const coin=v_coin();
-  if(!coin){setStatusEl('bybitFrStatus','✗ 請先輸入幣種代號',false);setBtnState(btn,'fail');return;}
-  setBtnState(btn,'loading');
-  try{
-    const r=await fetch(`https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${COIN_MAP_BYBIT(coin)}&limit=1`);
-    const j=await r.json();
-    if(j.retCode===0&&j.result&&j.result.list&&j.result.list.length>0){
-      const rate=parseFloat(j.result.list[0].fundingRate);
-      document.getElementById('bybitFunding').value=(rate*100).toFixed(4);
-      setStatusEl('bybitFrStatus',`✓ Bybit ${coin} 資金費率: ${(rate*100).toFixed(6)}% — ${new Date().toLocaleTimeString()}`,true);
-      setBtnState(btn,'success');
-      try{const pr=await fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${COIN_MAP_BYBIT(coin)}`);const pj=await pr.json();if(pj.retCode===0&&pj.result&&pj.result.list&&pj.result.list.length>0)document.getElementById('entryPrice').value=parseFloat(pj.result.list[0].markPrice).toFixed(2);}catch(e){}
-    }else throw new Error(j.retMsg||'No data');
-  }catch(e){setStatusEl('bybitFrStatus',`✗ 抓取失敗: ${e.message}`,false);setBtnState(btn,'fail');}
-}
-
-async function fetchAllLive(){
-  const btn=document.getElementById('btnFetchAll');btn.textContent='抓取中…';btn.classList.add('loading');
-  await Promise.allSettled([fetchBitgetFunding(),fetchBybitFunding()]);
-  const bitgetOk=document.getElementById('bitgetFrStatus').style.color.includes('green');
-  const bybitOk=document.getElementById('bybitFrStatus').style.color.includes('green');
-  const dot=document.getElementById('apiDot');const st=document.getElementById('apiStatus');
-  if(bitgetOk||bybitOk){dot.className='live-dot on';st.textContent=`即時數據已更新 — ${new Date().toLocaleTimeString()}`;st.style.color='var(--green)';}
-  else{dot.className='live-dot off';st.textContent='API 連線失敗，請手動輸入費率';st.style.color='var(--red)';}
-  btn.textContent='即時抓取';btn.classList.remove('loading');
-}
-
-function onCoinChange(){
-  const prices={BTC:85000,ETH:1800,SOL:140,XRP:0.55,DOGE:0.08,PEPE:0.000008,SUI:1.2,AVAX:22,ADA:0.35,LINK:13,OP:1.5,ARB:0.35,APT:6,SEI:0.3,TIA:5,INJ:15,NEAR:4,TON:3.5,TRUMP:10,PENDLE:3,AAVE:200,UNI:7};
-  const coin=v_coin();if(prices[coin])document.getElementById('entryPrice').value=prices[coin];
-  document.getElementById('bitgetFrStatus').textContent='';document.getElementById('bybitFrStatus').textContent='';
-}
-
-function calculate(){
-  const notional=v('positionUsdt');const levA=v('leverageA');const levB=v('leverageB');const holdDays=v('holdDays');
-  const slipOpenPct=v('slippageOpen')/100;const slipClosePct=v('slippageClose')/100;
-  const bitgetFundingPct=v('bitgetFunding')/100;const bybitFundingPct=v('bybitFunding')/100;
-  const withdrawFeeUnit=v('withdrawFee');const transfers=parseInt(s('needTransfer'));
-  const platA=s('platformA');const platB=s('platformB');
-  function getFee(p,m){if(p==='bitget')return m==='maker'?v('bitgetFutMaker')/100:v('bitgetFutTaker')/100;return m==='maker'?v('bybitFutMaker')/100:v('bybitFutTaker')/100;}
-  const ot=orderType;
-  const fAo=getFee(platA,ot),fAc=getFee(platA,ot),fBo=getFee(platB,ot),fBc=getFee(platB,ot);
-  const cAo=notional*fAo,cAc=notional*fAc,cBo=notional*fBo,cBc=notional*fBc;
-  const slO=notional*slipOpenPct*2,slC=notional*slipClosePct*2,slT=slO+slC;
-  const ft=holdDays*3;
-  const frA=platA==='bitget'?bitgetFundingPct:bybitFundingPct;
-  const frB=platB==='bitget'?bitgetFundingPct:bybitFundingPct;
-  const fA8=notional*frA,fB8=notional*frB*-1;
-  const fNet8=fA8+fB8,fTotal=fNet8*ft;
-  const wTotal=withdrawFeeUnit*transfers;
-  const total=cAo+cAc+cBo+cBc+slT+fTotal+wTotal;
-  const costPct=(total/notional)*100;
-  const pn=p=>p==='bitget'?'Bitget':'Bybit';
-  const otl=t=>t==='maker'?'限價單':'市價單';
-  const rows=[
-    {i:`做多開倉手續費 (${otl(ot)})`,p:pn(platA),f:`${fmt(notional)} × ${fmtPct(fAo*100)}`,v:cAo,c:'red'},
-    {i:`做多平倉手續費 (${otl(ot)})`,p:pn(platA),f:`${fmt(notional)} × ${fmtPct(fAc*100)}`,v:cAc,c:'red'},
-    {i:`做空開倉手續費 (${otl(ot)})`,p:pn(platB),f:`${fmt(notional)} × ${fmtPct(fBo*100)}`,v:cBo,c:'red'},
-    {i:`做空平倉手續費 (${otl(ot)})`,p:pn(platB),f:`${fmt(notional)} × ${fmtPct(fBc*100)}`,v:cBc,c:'red'},
-    {i:'開倉滑點 (×2 筆)',p:'雙平台',f:`${fmt(notional)} × ${fmtPct(slipOpenPct*100)} × 2`,v:slO,c:'yellow'},
-    {i:'平倉滑點 (×2 筆)',p:'雙平台',f:`${fmt(notional)} × ${fmtPct(slipClosePct*100)} × 2`,v:slC,c:'yellow'},
-    {i:`資金費率淨額 (${ft}次 × ${holdDays}天)`,p:'雙平台',f:`(多付${fmtPct(frA*100)} − 空收${fmtPct(frB*100)}) × ${fmt(notional)} × ${ft}`,v:fTotal,c:fTotal>=0?'red':'green'},
-    {i:`提幣手續費 (${transfers}次)`,p:'跨平台',f:`${fmt(withdrawFeeUnit)} × ${transfers}`,v:wTotal,c:'red'},
-  ];
-  let h='';rows.forEach(r=>{h+=`<tr><td>${r.i}</td><td>${r.p}</td><td style="color:var(--muted);font-size:.78rem;">${r.f}</td><td class="val ${r.c}">${r.v<0?'':''} ${fmt(Math.abs(r.v))}${r.v<0?' ↓':''}</td></tr>`;});
-  // 損益 = -total（成本為正時虧錢，成本為負時賺錢）
-  const pnl = -total;
-  h+=`<tr class="total-row"><td colspan="3">對沖損益</td><td class="val ${pnl>=0?'green':'red'}">${pnl>=0?'+':''}${fmt(pnl)} USDT</td></tr>`;
-  document.getElementById('resultBody').innerHTML=h;
-  document.getElementById('sumNotional').textContent=fmt(notional)+' USDT';
-  document.getElementById('sumCost').textContent=(pnl>=0?'+':'')+fmt(pnl)+' USDT';
-  document.getElementById('sumCost').style.color=pnl>=0?'var(--green)':'var(--red)';
-  const pnlPct = (-costPct);
-  document.getElementById('sumPct').textContent=(pnlPct>=0?'+':'')+pnlPct.toFixed(4)+'%';
-  document.getElementById('sumPct').style.color=pnlPct>=0?'var(--green)':'var(--red)';
-  document.getElementById('marginA').textContent=fmt(notional/levA)+' USDT';
-  document.getElementById('marginB').textContent=fmt(notional/levB)+' USDT';
-  const fnEl=document.getElementById('fundingNet');
-  fnEl.textContent=(fNet8>=0?'付 ':'收 ')+fmt(Math.abs(fNet8))+' USDT';
-  fnEl.style.color=fNet8>=0?'var(--red)':'var(--green)';
-  const tf=cAo+cAc+cBo+cBc;const ac=Math.abs(total);
-  let tips=`<strong>📊 損益結構分析：</strong><br>`;
-  tips+=`• 交易手續費支出：-${fmt(tf)} USDT<br>`;
-  tips+=`• 資金費率：${fTotal>=0?'支出 -':'收入 +'}${fmt(Math.abs(fTotal))} USDT（${holdDays}天共${ft}次結算）<br>`;
-  tips+=`• 滑點支出：-${fmt(slT)} USDT<br>`;
-  tips+=`• <strong>最終損益：<span style="color:${pnl>=0?'var(--green)':'var(--red)'};">${pnl>=0?'+':''}${fmt(pnl)} USDT（${pnl>=0?'賺':'虧'}）</span></strong><br>`;
-  tips+=`<br><strong>💡 優化建議：</strong><br>`;
-  tips+=`• 使用限價單可節省 50-60% 手續費，但需承擔不成交風險<br>`;
-  if(fNet8<0)tips+=`• <span style="color:var(--green);">✓ 目前費率組合有利！做空端收入 > 做多端支出，持倉越久越賺</span><br>`;
-  else if(fNet8>0)tips+=`• <span style="color:var(--accent2);">⚠ 費率方向不利，持倉越久虧越多，建議等費率翻轉再進場</span><br>`;
-  tips+=`• 所需總資金 = ${fmt(notional/levA+notional/levB)} USDT（雙平台保證金合計）<br>`;
-  tips+=`• 提幣走 TRC-20 最便宜（~1 USDT），避免 ERC-20（~3-10 USDT）`;
-  if(notional>50000)tips+=`<br>• <span style="color:var(--accent2);">倉位 > 50K，建議分批掛單開倉降低滑點</span>`;
-  document.getElementById('infoBox').innerHTML=tips;
-  document.getElementById('calcResults').style.display='block';
-  document.getElementById('calcResults').scrollIntoView({behavior:'smooth',block:'start'});
-}
 
 // ==================== POSITION MANAGEMENT ====================
 // Data stored in localStorage
@@ -947,48 +721,6 @@ function updateNavBadge() {
   const badge = document.getElementById('navPosCount');
   if (count > 0) { badge.textContent = count; badge.style.display = 'inline'; }
   else { badge.style.display = 'none'; }
-}
-
-// Confirm order from calculator
-function confirmOrder() {
-  const coin = v_coin();
-  if (!coin) { showToast('請先輸入幣種代號'); return; }
-  const price = v('entryPrice');
-  const positionUsdt = v('positionUsdt');
-  if (!price || !positionUsdt) { showToast('請填入開倉價格和倉位大小'); return; }
-
-  const order = {
-    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
-    coin: coin,
-    entryPrice: price,
-    positionUsdt: positionUsdt,
-    leverageA: v('leverageA'),
-    leverageB: v('leverageB'),
-    platformA: s('platformA'),
-    platformB: s('platformB'),
-    orderType: orderType,
-    // Fee rates at time of order
-    feeRateA: orderType === 'maker'
-      ? (s('platformA') === 'bitget' ? v('bitgetFutMaker') : v('bybitFutMaker'))
-      : (s('platformA') === 'bitget' ? v('bitgetFutTaker') : v('bybitFutTaker')),
-    feeRateB: orderType === 'maker'
-      ? (s('platformB') === 'bitget' ? v('bitgetFutMaker') : v('bybitFutMaker'))
-      : (s('platformB') === 'bitget' ? v('bitgetFutTaker') : v('bybitFutTaker')),
-    bitgetFunding: v('bitgetFunding'),
-    bybitFunding: v('bybitFunding'),
-    status: 'pending', // pending | active | closed
-    createdAt: Date.now(),
-    filledAt: null,
-    accumulatedFunding: 0,
-    lastFundingCheck: null,
-    fundingHistory: [], // [{time, rate, cost}]
-  };
-
-  const positions = loadPositions();
-  positions.push(order);
-  savePositions(positions);
-  showToast(`已建立 ${coin}/USDT 掛單，切換到倉位管理查看`);
-  renderPositions();
 }
 
 // Manual fill
@@ -1205,7 +937,7 @@ function renderPositions() {
   // Render pending
   const pn = p => p === 'bitget' ? 'Bitget' : 'Bybit';
   if (pending.length === 0) {
-    document.getElementById('pendingBody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">尚無掛單，請到「對沖計算器」按「確認開單」新增</td></tr>';
+    document.getElementById('pendingBody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">尚無掛單</td></tr>';
   } else {
     let ph = '';
     pending.forEach(p => {
