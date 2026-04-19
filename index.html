@@ -548,8 +548,8 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="card-title" style="color:var(--accent2);font-size:.9rem;">即時模擬結果</div>
 
       <div class="wsot-result-grid">
-        <div class="wsot-result-box highlight"><div class="label">WSOT ROI%（止盈時）</div><div class="value" id="wsotRoiTp">—</div></div>
-        <div class="wsot-result-box highlight"><div class="label">WSOT ROI%（止損時）</div><div class="value" id="wsotRoiSl">—</div></div>
+        <div class="wsot-result-box highlight"><div class="label">WSOT ROI%（止盈時）</div><div class="value" id="wsotRoiTp">—</div><div class="sub-value" id="wsotRoiTpDetail" style="font-size:.65rem;color:var(--muted);margin-top:2px;"></div></div>
+        <div class="wsot-result-box highlight"><div class="label">WSOT ROI%（止損時）</div><div class="value" id="wsotRoiSl">—</div><div class="sub-value" id="wsotRoiSlDetail" style="font-size:.65rem;color:var(--muted);margin-top:2px;"></div></div>
         <div class="wsot-result-box"><div class="label">止盈 — 實際淨損益</div><div class="value" id="wsotNetTp">—</div></div>
         <div class="wsot-result-box"><div class="label">止損 — 實際淨損益</div><div class="value" id="wsotNetSl">—</div></div>
       </div>
@@ -1710,9 +1710,10 @@ function wsotCalculate() {
     if (okxPnl < okxMaxLoss) okxPnl = okxMaxLoss;
 
     const netPnl = bybitPnl + okxPnl - totalCostVal;
-    const wsotRoi = ((bybitPnl - bybitFundingTotal) / deposit) * 100;
+    const wsotRoiPrice = (bybitPnl / deposit) * 100; // 純價格損益 ROI
+    const wsotRoi = ((bybitPnl - bybitFundingTotal) / deposit) * 100; // 含資金費率
 
-    return { bybitPnl, okxPnl, netPnl, wsotRoi };
+    return { bybitPnl, okxPnl, netPnl, wsotRoi, wsotRoiPrice };
   }
 
   const tpResult = calcPnl(validatedTp);
@@ -1812,10 +1813,18 @@ function wsotCalculate() {
   const roiTpEl = document.getElementById('wsotRoiTp');
   roiTpEl.textContent = validatedTp ? ((tpResult.wsotRoi >= 0 ? '+' : '') + tpResult.wsotRoi.toFixed(1) + '%') : '—';
   roiTpEl.style.color = tpResult.wsotRoi >= 0 ? 'var(--green)' : 'var(--red)';
+  const roiTpDetailEl = document.getElementById('wsotRoiTpDetail');
+  if (validatedTp && holdDays > 0) {
+    roiTpDetailEl.innerHTML = `價格 ${tpResult.wsotRoiPrice >= 0 ? '+' : ''}${tpResult.wsotRoiPrice.toFixed(1)}% ＋ 資金費率 ${(tpResult.wsotRoi - tpResult.wsotRoiPrice) >= 0 ? '+' : ''}${(tpResult.wsotRoi - tpResult.wsotRoiPrice).toFixed(1)}%`;
+  } else { roiTpDetailEl.innerHTML = ''; }
 
   const roiSlEl = document.getElementById('wsotRoiSl');
   roiSlEl.textContent = validatedSl ? ((slResult.wsotRoi >= 0 ? '+' : '') + slResult.wsotRoi.toFixed(1) + '%') : '—';
   roiSlEl.style.color = slResult.wsotRoi >= 0 ? 'var(--green)' : 'var(--red)';
+  const roiSlDetailEl = document.getElementById('wsotRoiSlDetail');
+  if (validatedSl && holdDays > 0) {
+    roiSlDetailEl.innerHTML = `價格 ${slResult.wsotRoiPrice >= 0 ? '+' : ''}${slResult.wsotRoiPrice.toFixed(1)}% ＋ 資金費率 ${(slResult.wsotRoi - slResult.wsotRoiPrice) >= 0 ? '+' : ''}${(slResult.wsotRoi - slResult.wsotRoiPrice).toFixed(1)}%`;
+  } else { roiSlDetailEl.innerHTML = ''; }
 
   const netTpEl = document.getElementById('wsotNetTp');
   netTpEl.textContent = validatedTp ? ((tpResult.netPnl >= 0 ? '+' : '') + fmt(tpResult.netPnl)) : '—';
