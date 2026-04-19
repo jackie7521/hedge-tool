@@ -321,22 +321,47 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
       <div>
         <div class="section-label">資金設定</div>
-        <div class="form-row"><label>投入資金</label><input type="number" id="arbCapital" value="1000" step="any"><span class="unit">USDT</span></div>
-        <div class="form-row"><label>槓桿倍數</label><input type="number" id="arbLeverage" value="5" min="1" max="125" step="1"><span class="unit">x</span></div>
+        <div class="form-row"><label>投入資金</label><input type="number" id="arbCapital" value="1000" step="any" oninput="onArbInputChange()"><span class="unit">USDT</span></div>
+        <div class="form-row"><label>槓桿倍數</label><input type="number" id="arbLeverage" value="5" min="1" max="125" step="1" oninput="onArbInputChange()"><span class="unit">x</span></div>
         <div class="form-row"><label>下單方式</label>
           <div class="toggle-row" style="flex:1;">
             <button class="toggle-btn active" id="arbOrderLimit" onclick="setArbOrder('maker',this)">限價單</button>
             <button class="toggle-btn" id="arbOrderMarket" onclick="setArbOrder('taker',this)">市價單</button>
           </div>
         </div>
-        <div class="form-row"><label>預計持倉</label><input type="number" id="arbHoldDays" value="7" min="1" max="365" step="1"><span class="unit">天</span></div>
+        <div class="form-row"><label>預計持倉</label><input type="number" id="arbHoldDays" value="7" min="1" max="365" step="1" oninput="onArbInputChange()"><span class="unit">天</span></div>
       </div>
       <div>
         <div class="section-label">費率（自動帶入）</div>
-        <div class="form-row"><label>Bybit 費率</label><input type="number" id="arbBybitRate" value="0" step="0.0001"><span class="unit">% / 8hr</span></div>
-        <div class="form-row"><label>Bitget 費率</label><input type="number" id="arbBitgetRate" value="0" step="0.0001"><span class="unit">% / 8hr</span></div>
-        <div class="form-row"><label>手續費率</label><input type="number" id="arbFeeRate" value="0.02" step="0.001"><span class="unit">%</span></div>
-        <div class="form-row"><label>提幣費</label><input type="number" id="arbWithdrawFee" value="1" step="0.1"><span class="unit">USDT</span></div>
+        <div class="form-row"><label>Bybit 費率</label><input type="number" id="arbBybitRate" value="0" step="0.0001" oninput="onArbInputChange()"><span class="unit">% / 8hr</span></div>
+        <div class="form-row"><label>Bitget 費率</label><input type="number" id="arbBitgetRate" value="0" step="0.0001" oninput="onArbInputChange()"><span class="unit">% / 8hr</span></div>
+        <div class="form-row"><label>手續費率</label><input type="number" id="arbFeeRate" value="0.02" step="0.001" oninput="onArbInputChange()"><span class="unit">%</span></div>
+        <div class="form-row"><label>提幣費</label><input type="number" id="arbWithdrawFee" value="1" step="0.1" oninput="onArbInputChange()"><span class="unit">USDT</span></div>
+      </div>
+    </div>
+
+    <!-- Spread Info -->
+    <div id="arbSpreadPanel" style="display:none;margin-bottom:16px;padding:14px 18px;background:rgba(247,166,0,.06);border:1px solid rgba(247,166,0,.2);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-weight:700;font-size:.85rem;color:var(--accent2);">📊 即時點差分析</span>
+        <span id="arbSpreadRefreshTime" style="font-size:.68rem;color:var(--muted);margin-left:auto;"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
+        <div>
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;">Bybit Bid / Ask</div>
+          <div class="mono" style="font-size:.82rem;"><span id="arbBybitBid" class="green">—</span> / <span id="arbBybitAsk" class="red">—</span></div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">點差: <span id="arbBybitSpread" class="mono yellow">—</span></div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;">Bitget Bid / Ask</div>
+          <div class="mono" style="font-size:.82rem;"><span id="arbBitgetBid" class="green">—</span> / <span id="arbBitgetAsk" class="red">—</span></div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">點差: <span id="arbBitgetSpread" class="mono yellow">—</span></div>
+        </div>
+        <div>
+          <div style="font-size:.72rem;color:var(--muted);margin-bottom:4px;">總點差成本（進出場）</div>
+          <div class="mono red" style="font-size:.95rem;font-weight:700;" id="arbTotalSpreadCost">—</div>
+          <div style="font-size:.7rem;color:var(--muted);margin-top:2px;">佔資金 <span id="arbSpreadPct" class="mono red">—</span></div>
+        </div>
       </div>
     </div>
 
@@ -351,7 +376,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
       <div class="arb-metric"><div class="label">倉位價值</div><div class="value" id="arbResPos" style="color:var(--text);">—</div></div>
       <div class="arb-metric"><div class="label">所需保證金（雙平台）</div><div class="value" id="arbResMargin" style="color:var(--text);">—</div></div>
-      <div class="arb-metric"><div class="label">開倉手續費</div><div class="value red" id="arbResFee">—</div></div>
+      <div class="arb-metric"><div class="label">總成本（手續費+點差+提幣）</div><div class="value red" id="arbResFee">—</div></div>
       <div class="arb-metric"><div class="label">回本時間</div><div class="value yellow" id="arbResBreakeven">—</div></div>
     </div>
 
@@ -870,6 +895,11 @@ function setArbOrder(t, el) {
   arbOrderType = t;
   document.getElementById('arbOrderLimit').classList.toggle('active', t === 'maker');
   document.getElementById('arbOrderMarket').classList.toggle('active', t === 'taker');
+  onArbInputChange();
+}
+
+function onArbInputChange() {
+  if (arbSelectedCoin) updateSpreadDisplay(arbSelectedCoin);
   calcArbitrage();
 }
 
@@ -894,6 +924,8 @@ async function loadArbData() {
         bitgetMap[t.symbol] = {
           fundingRate: parseFloat(t.fundingRate || 0),
           lastPrice: parseFloat(t.lastPr || t.last || 0),
+          bid: parseFloat(t.bidPr || t.bestBid || 0),
+          ask: parseFloat(t.askPr || t.bestAsk || 0),
         };
       });
     }
@@ -932,6 +964,10 @@ async function loadArbData() {
         arbData.push({
           symbol, bitgetSymbol,
           lastPrice: parseFloat(t.lastPrice || 0),
+          bybitBid: parseFloat(t.bid1Price || 0),
+          bybitAsk: parseFloat(t.ask1Price || 0),
+          bitgetBid: bitgetInfo ? parseFloat(bitgetInfo.bid || 0) : 0,
+          bitgetAsk: bitgetInfo ? parseFloat(bitgetInfo.ask || 0) : 0,
           bybitRate, bitgetRate, rateDiff,
           direction, dirBybit, dirBitget,
           apr: aprEstimate,
@@ -1008,8 +1044,82 @@ function selectArbCoin(symbol) {
   document.getElementById('arbBybitRate').value = (d.bybitRate * 100).toFixed(4);
   document.getElementById('arbBitgetRate').value = d.bitgetRate !== null ? (d.bitgetRate * 100).toFixed(4) : '0';
   document.getElementById('arbCalcPanel').style.display = 'block';
+
+  // Show spread from scan data first, then fetch fresh
+  updateSpreadDisplay(d);
   calcArbitrage();
+  fetchFreshBidAsk(symbol, d.bitgetSymbol);
+
   document.getElementById('arbCalcPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updateSpreadDisplay(d) {
+  const panel = document.getElementById('arbSpreadPanel');
+  if (!d.bybitBid || !d.bybitAsk) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+
+  document.getElementById('arbBybitBid').textContent = fmtPrice(d.bybitBid);
+  document.getElementById('arbBybitAsk').textContent = fmtPrice(d.bybitAsk);
+  const bybitSpread = d.bybitAsk - d.bybitBid;
+  const bybitSpreadPct = (bybitSpread / d.lastPrice * 100);
+  document.getElementById('arbBybitSpread').textContent = fmtPrice(bybitSpread) + ' (' + bybitSpreadPct.toFixed(4) + '%)';
+
+  if (d.bitgetBid && d.bitgetAsk) {
+    document.getElementById('arbBitgetBid').textContent = fmtPrice(d.bitgetBid);
+    document.getElementById('arbBitgetAsk').textContent = fmtPrice(d.bitgetAsk);
+    const bitgetSpread = d.bitgetAsk - d.bitgetBid;
+    const bitgetSpreadPct = (bitgetSpread / d.lastPrice * 100);
+    document.getElementById('arbBitgetSpread').textContent = fmtPrice(bitgetSpread) + ' (' + bitgetSpreadPct.toFixed(4) + '%)';
+  } else {
+    document.getElementById('arbBitgetBid').textContent = '—';
+    document.getElementById('arbBitgetAsk').textContent = '—';
+    document.getElementById('arbBitgetSpread').textContent = '—';
+  }
+
+  // Calculate total spread cost (entry + exit = 2 rounds, each round eats half spread on each side)
+  const capital = v('arbCapital');
+  const leverage = v('arbLeverage');
+  const posPerSide = (capital / 2) * leverage;
+  const bybitSlipPct = bybitSpreadPct / 100 / 2; // half spread per side
+  const bitgetSlipPct = d.bitgetBid && d.bitgetAsk ? ((d.bitgetAsk - d.bitgetBid) / d.lastPrice / 2) : 0;
+  // Entry: both sides eat half spread. Exit: both sides eat half spread again. Total = full spread × 2 sides
+  const totalSpreadCost = posPerSide * (bybitSlipPct + bitgetSlipPct) * 2; // ×2 for entry+exit
+  document.getElementById('arbTotalSpreadCost').textContent = '-$' + fmt(totalSpreadCost);
+  const spreadPctOfCapital = (totalSpreadCost / capital * 100).toFixed(3);
+  document.getElementById('arbSpreadPct').textContent = spreadPctOfCapital + '%';
+
+  // Store for calcArbitrage to use
+  arbSelectedCoin._spreadCost = totalSpreadCost;
+
+  document.getElementById('arbSpreadRefreshTime').textContent = new Date().toLocaleTimeString();
+}
+
+async function fetchFreshBidAsk(bybitSymbol, bitgetSymbol) {
+  try {
+    const [bybitRes, bitgetRes] = await Promise.all([
+      fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${bybitSymbol}`),
+      fetch(`https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES&symbol=${bitgetSymbol}`)
+    ]);
+    const bybitJson = await bybitRes.json();
+    const bitgetJson = await bitgetRes.json();
+
+    if (bybitJson.retCode === 0 && bybitJson.result?.list?.[0]) {
+      const t = bybitJson.result.list[0];
+      arbSelectedCoin.bybitBid = parseFloat(t.bid1Price || 0);
+      arbSelectedCoin.bybitAsk = parseFloat(t.ask1Price || 0);
+      arbSelectedCoin.lastPrice = parseFloat(t.lastPrice || arbSelectedCoin.lastPrice);
+    }
+    if (bitgetJson.code === '00000' && bitgetJson.data?.[0]) {
+      const t = bitgetJson.data[0];
+      arbSelectedCoin.bitgetBid = parseFloat(t.bidPr || t.bestBid || 0);
+      arbSelectedCoin.bitgetAsk = parseFloat(t.askPr || t.bestAsk || 0);
+    }
+
+    updateSpreadDisplay(arbSelectedCoin);
+    calcArbitrage();
+  } catch(e) {
+    console.warn('Failed to fetch fresh bid/ask:', e);
+  }
 }
 
 function calcArbitrage() {
@@ -1050,7 +1160,10 @@ function calcArbitrage() {
 
   // Costs
   const openFee = totalPos * feeRate * 2 * 2; // 2 sides × open + close
-  const totalCost = openFee + withdrawFee;
+  // Limit orders can place inside spread, reducing ~80% of spread cost
+  const rawSpreadCost = arbSelectedCoin && arbSelectedCoin._spreadCost ? arbSelectedCoin._spreadCost : 0;
+  const spreadCost = arbOrderType === 'maker' ? rawSpreadCost * 0.2 : rawSpreadCost;
+  const totalCost = openFee + withdrawFee + spreadCost;
   const netProfit = totalIncome - totalCost;
 
   // APR on capital
@@ -1099,13 +1212,17 @@ function calcArbitrage() {
   // Info box
   let tips = `<strong>💡 套利策略分析：</strong><br>`;
   tips += `• 每 8 小時淨收入 $${fmt(incomePer8hr)}（費率差 ${(netRatePer8hr * 100).toFixed(4)}% × 倉位 $${fmtNum(totalPos)}）<br>`;
-  tips += `• 開倉手續費 $${fmt(openFee)}（${arbOrderType === 'maker' ? '限價單' : '市價單'}，雙平台開+平共 4 筆）+ 提幣費 $${fmt(withdrawFee)}<br>`;
+  tips += `• 開倉手續費 $${fmt(openFee)}（${arbOrderType === 'maker' ? '限價單' : '市價單'}，雙平台開+平共 4 筆）+ 提幣費 $${fmt(withdrawFee)}`;
+  if (spreadCost > 0) tips += ` + 點差成本 $${fmt(spreadCost)}`;
+  tips += `<br>`;
   tips += `• <strong>持倉 ${holdDays} 天預估淨利：<span style="color:${netProfit >= 0 ? 'var(--green)' : 'var(--red)'};">${netProfit >= 0 ? '+' : ''}$${fmt(Math.abs(netProfit))}</span>（${(netProfit / capital * 100).toFixed(2)}% ROI）</strong><br>`;
   tips += `<br><strong>⚠ 風險提示：</strong><br>`;
   tips += `• 資金費率每 8 小時變動，以上為當前費率的理想推算<br>`;
   tips += `• Bybit 爆倉距離 ${bybitLiqDist}%，Bitget 爆倉距離 ${bitgetLiqDist}%`;
   if (Math.min(bybitLiqDist, bitgetLiqDist) < 10) tips += `<br>• <span style="color:var(--red);">⚠ 爆倉距離過近！建議降低槓桿或增加保證金</span>`;
-  tips += `<br>• 使用限價單可減少約 60% 手續費，加速回本<br>`;
+  tips += `<br>• 使用限價單可減少約 60% 手續費`;
+  if (spreadCost > 0) tips += `，且可避免點差滑價（掛在 bid/ask 之間成交）`;
+  tips += `<br>`;
   tips += `• 建議費率差 < 0.005% 時考慮換幣或離場`;
   document.getElementById('arbInfoBox').innerHTML = tips;
 }
