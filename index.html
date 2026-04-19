@@ -1109,10 +1109,13 @@ async function fetchFreshBidAsk(bybitSymbol, bitgetSymbol) {
       arbSelectedCoin.bybitAsk = parseFloat(t.ask1Price || 0);
       arbSelectedCoin.lastPrice = parseFloat(t.lastPrice || arbSelectedCoin.lastPrice);
     }
-    if (bitgetJson.code === '00000' && bitgetJson.data?.[0]) {
-      const t = bitgetJson.data[0];
-      arbSelectedCoin.bitgetBid = parseFloat(t.bidPr || t.bestBid || 0);
-      arbSelectedCoin.bitgetAsk = parseFloat(t.askPr || t.bestAsk || 0);
+    if (bitgetJson.code === '00000' && bitgetJson.data) {
+      // Find the correct symbol - API may return all tickers if symbol not matched
+      const t = bitgetJson.data.find(x => x.symbol === bitgetSymbol) || null;
+      if (t) {
+        arbSelectedCoin.bitgetBid = parseFloat(t.bidPr || t.bestBid || 0);
+        arbSelectedCoin.bitgetAsk = parseFloat(t.askPr || t.bestAsk || 0);
+      }
     }
 
     updateSpreadDisplay(arbSelectedCoin);
