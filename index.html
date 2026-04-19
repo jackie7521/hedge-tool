@@ -309,9 +309,9 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <span class="badge" style="background:rgba(247,166,0,.15);color:var(--accent2);" id="pendingBadge">0</span>
     </div>
     <div class="table-wrap" style="border:none;">
-      <table class="lb-table" style="min-width:800px;">
+      <table class="lb-table" style="min-width:1100px;">
         <thead><tr>
-          <th>幣種</th><th>方向</th><th>平台</th><th>目標價</th><th>現價</th><th>價差</th><th>倉位 (USDT)</th><th>槓桿</th><th>狀態</th><th>操作</th>
+          <th>幣種</th><th>方向</th><th>平台</th><th>進場價</th><th>止盈 / 止損</th><th>預估強平</th><th>現價</th><th>倉位 (USDT)</th><th>狀態</th><th>操作</th>
         </tr></thead>
         <tbody id="pendingBody"><tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">尚無掛單</td></tr></tbody>
       </table>
@@ -326,11 +326,11 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <span class="badge" style="background:rgba(0,230,118,.15);color:var(--green);" id="activeBadge">0</span>
     </div>
     <div class="table-wrap" style="border:none;">
-      <table class="lb-table" style="min-width:1050px;">
+      <table class="lb-table" style="min-width:1200px;">
         <thead><tr>
-          <th>幣種</th><th>對沖組合</th><th>開倉價</th><th>倉位</th><th>成交時間</th><th>持倉時長</th><th>累計資金費率</th><th>交易手續費</th><th>總成本</th><th>操作</th>
+          <th>幣種</th><th>對沖組合</th><th>開倉價</th><th>止盈 / 止損</th><th>預估強平</th><th>倉位</th><th>持倉時長</th><th>累計資金費率</th><th>手續費</th><th>總成本</th><th>操作</th>
         </tr></thead>
-        <tbody id="activeBody"><tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">尚無已成交倉位</td></tr></tbody>
+        <tbody id="activeBody"><tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">尚無已成交倉位</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1012,17 +1012,30 @@ function renderPositions() {
       const dirLabel = p.wsot
         ? `<span class="${p.direction==='long'?'direction-long':'direction-short'}">${p.direction==='long'?'做多 ▲':'做空 ▼'}</span>`
         : '<span class="direction-long">做多</span> + <span class="direction-short">做空</span>';
-      const tpslInfo = p.wsot && p.tp && p.sl
-        ? `<div style="font-size:.65rem;color:var(--muted);margin-top:2px;">TP ${fmtPrice(p.tp)} / SL ${fmtPrice(p.sl)}</div>` : '';
+      // TP/SL display
+      const tpStr = p.tp ? `<span class="green">${fmtPrice(p.tp)}</span>` : '<span class="dim">—</span>';
+      const slStr = p.sl ? `<span class="red">${fmtPrice(p.sl)}</span>` : '<span class="dim">—</span>';
+      // Liquidation prices
+      const bybitDir = p.wsot ? p.direction : 'long';
+      const bitgetDir = bybitDir === 'long' ? 'short' : 'long';
+      const bybitLiq = bybitDir === 'long'
+        ? p.entryPrice * (1 - 1 / p.leverageA * 0.95)
+        : p.entryPrice * (1 + 1 / p.leverageA * 0.95);
+      const bitgetLiq = bitgetDir === 'long'
+        ? p.entryPrice * (1 - 1 / p.leverageB * 0.95)
+        : p.entryPrice * (1 + 1 / p.leverageB * 0.95);
       ph += `<tr>
         <td><span class="symbol-name">${p.coin}</span><span class="symbol-pair"> / USDT</span>${wsotBadge}</td>
         <td>${dirLabel}</td>
         <td>${pn(p.platformA)} / ${pn(p.platformB)}</td>
-        <td class="mono">${fmtPrice(p.entryPrice)}${tpslInfo}</td>
-        <td class="mono">${curStr}</td>
-        <td class="mono ${diffCls}">${diffStr}</td>
-        <td class="mono">${fmt(p.positionUsdt)}</td>
-        <td class="mono">${p.leverageA}x / ${p.leverageB}x</td>
+        <td class="mono">${fmtPrice(p.entryPrice)}</td>
+        <td class="mono" style="line-height:1.6;">${tpStr}<br>${slStr}</td>
+        <td style="line-height:1.6;font-size:.75rem;">
+          <span class="mono">${pn(p.platformA)} ${fmtPrice(bybitLiq)}</span><br>
+          <span class="mono">${pn(p.platformB)} ${fmtPrice(bitgetLiq)}</span>
+        </td>
+        <td class="mono">${curStr} <span class="mono ${diffCls}" style="font-size:.7rem;">${diffStr}</span></td>
+        <td class="mono">${fmt(p.positionUsdt)}<span class="dim" style="font-size:.68rem;"> (${p.leverageA}x/${p.leverageB}x)</span></td>
         <td><span class="status-chip ${statusCls}">${statusText}</span></td>
         <td>
           <button class="pos-fill-btn" onclick="manualFill('${p.id}')" title="手動標記為成交">成交</button>
@@ -1035,7 +1048,7 @@ function renderPositions() {
 
   // Render active
   if (active.length === 0) {
-    document.getElementById('activeBody').innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--muted);">尚無已成交倉位</td></tr>';
+    document.getElementById('activeBody').innerHTML = '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--muted);">尚無已成交倉位</td></tr>';
   } else {
     let ah = '';
     active.forEach(p => {
@@ -1049,13 +1062,40 @@ function renderPositions() {
       const activeDirLabel = p.wsot
         ? `${pn(p.platformA)} <span class="${p.direction==='long'?'direction-long':'direction-short'}">${p.direction==='long'?'做多':'做空'}</span> / ${pn(p.platformB)} <span class="${p.direction==='long'?'direction-short':'direction-long'}">${p.direction==='long'?'做空':'做多'}</span>`
         : `${pn(p.platformA)} <span class="direction-long">做多</span> / ${pn(p.platformB)} <span class="direction-short">做空</span>`;
+      // TP/SL for active
+      const aTpStr = p.tp ? `<span class="green">${fmtPrice(p.tp)}</span>` : '<span class="dim">—</span>';
+      const aSlStr = p.sl ? `<span class="red">${fmtPrice(p.sl)}</span>` : '<span class="dim">—</span>';
+      // Liquidation for active
+      const aBybitDir = p.wsot ? p.direction : 'long';
+      const aBitgetDir = aBybitDir === 'long' ? 'short' : 'long';
+      const aBybitLiq = aBybitDir === 'long'
+        ? p.entryPrice * (1 - 1 / p.leverageA * 0.95)
+        : p.entryPrice * (1 + 1 / p.leverageA * 0.95);
+      const aBitgetLiq = aBitgetDir === 'long'
+        ? p.entryPrice * (1 - 1 / p.leverageB * 0.95)
+        : p.entryPrice * (1 + 1 / p.leverageB * 0.95);
+      // Current price distance to liquidation
+      const curP = positionPriceCache[p.coin];
+      let bybitLiqWarn = '', bitgetLiqWarn = '';
+      if (curP) {
+        const bybitLiqDist = Math.abs((curP - aBybitLiq) / curP * 100);
+        const bitgetLiqDist = Math.abs((curP - aBitgetLiq) / curP * 100);
+        if (bybitLiqDist < 5) bybitLiqWarn = ' style="color:var(--red);font-weight:700;"';
+        else if (bybitLiqDist < 15) bybitLiqWarn = ' style="color:var(--accent2);"';
+        if (bitgetLiqDist < 5) bitgetLiqWarn = ' style="color:var(--red);font-weight:700;"';
+        else if (bitgetLiqDist < 15) bitgetLiqWarn = ' style="color:var(--accent2);"';
+      }
       ah += `<tr>
         <td><span class="symbol-name">${p.coin}</span><span class="symbol-pair"> / USDT</span>${activeWsotBadge}</td>
         <td>${activeDirLabel}</td>
         <td class="mono">${fmtPrice(p.entryPrice)}</td>
+        <td class="mono" style="line-height:1.6;">${aTpStr}<br>${aSlStr}</td>
+        <td style="line-height:1.6;font-size:.75rem;">
+          <span class="mono"${bybitLiqWarn}>${pn(p.platformA)} ${fmtPrice(aBybitLiq)}</span><br>
+          <span class="mono"${bitgetLiqWarn}>${pn(p.platformB)} ${fmtPrice(aBitgetLiq)}</span>
+        </td>
         <td class="mono">${fmt(p.positionUsdt)} <span class="dim" style="font-size:.7rem;">(${p.leverageA}x/${p.leverageB}x)</span></td>
-        <td style="font-size:.78rem;">${filledTime}</td>
-        <td><span class="time-elapsed">${elapsed}</span></td>
+        <td><span class="time-elapsed">${elapsed}</span><div style="font-size:.68rem;color:var(--muted);">${filledTime}</div></td>
         <td class="mono ${funding >= 0 ? 'red' : 'green'}">${funding >= 0 ? '' : '-'}${fmt(Math.abs(funding))} <span class="dim" style="font-size:.68rem;">(${settlements}次)</span></td>
         <td class="mono red">${fmt(tradeFee)}</td>
         <td class="mono ${totalCost >= 0 ? 'red' : 'green'}" style="font-weight:700;">${totalCost >= 0 ? '' : '-'}${fmt(Math.abs(totalCost))}</td>
