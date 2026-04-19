@@ -248,7 +248,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
         <th onclick="lbSortBy('turnover24h')">24h 成交額 <span class="arrow">▼</span></th>
         <th onclick="lbSortBy('fundingRate')">資金費率 <span class="arrow">▼</span></th>
         <th onclick="lbSortBy('openInterestValue')">未平倉(USD) <span class="arrow">▼</span></th>
-        <th style="width:70px;">操作</th>
+        <th style="width:120px;">操作</th>
       </tr></thead>
       <tbody id="lbBody"><tr><td colspan="9"><div class="loading-overlay"><div class="spinner"></div>正在從 Bybit API 載入數據…</div></td></tr></tbody>
     </table>
@@ -559,6 +559,17 @@ function goHedge(symbol, price, fundingRate) {
   fetchOkxFunding();
 }
 
+// ==================== BRING COIN TO WSOT ====================
+function goWsot(symbol, price) {
+  const rawCoin = symbol.replace('USDT', '');
+  document.getElementById('wsotCoin').value = rawCoin;
+  document.getElementById('wsotPrice').value = price;
+  const wsotTab = document.querySelectorAll('.nav-tab')[3];
+  switchPage('wsot', wsotTab);
+  wsotCalculate();
+  showToast(`WSOT 已帶入 ${rawCoin}/USDT — $${price}`);
+}
+
 // ==================== LEADERBOARD ====================
 let lbData = [];
 let lbMode = 'gainers';
@@ -661,7 +672,7 @@ function renderLb() {
       <td class="mono dim">$${fmtNum(d.turnover24h)}</td>
       <td><span class="funding-badge ${fc}">${(d.fundingRate*100).toFixed(4)}%</span></td>
       <td class="mono dim">$${fmtNum(d.openInterestValue)}</td>
-      <td><button class="hedge-btn" onclick="event.stopPropagation();goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})">對沖計算</button></td>
+      <td><button class="hedge-btn" onclick="event.stopPropagation();goHedge('${d.symbol}',${d.lastPrice},${d.fundingRate})">對沖</button><button class="hedge-btn" style="margin-left:4px;border-color:var(--accent2);color:var(--accent2);" onclick="event.stopPropagation();goWsot('${d.symbol}',${d.lastPrice})">WSOT</button></td>
     </tr>`;
   });
   if(!html)html='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
