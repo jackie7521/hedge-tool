@@ -1500,9 +1500,18 @@ let wsotBybitOrder = 'limit';
 let wsotOkxOrder = 'limit';
 
 function setWsotDir(dir, el) {
+  const oldDir = wsotDirection;
   wsotDirection = dir;
   document.getElementById('wsotDirLong').classList.toggle('active', dir === 'long');
   document.getElementById('wsotDirShort').classList.toggle('active', dir === 'short');
+  // 切換方向時自動交換止盈/止損
+  if (oldDir !== dir) {
+    const tpEl = document.getElementById('wsotBybitTp');
+    const slEl = document.getElementById('wsotBybitSl');
+    const oldTp = tpEl.value;
+    tpEl.value = slEl.value;
+    slEl.value = oldTp;
+  }
   wsotCalculate();
 }
 function setWsotBybitOrder(type, el) {
@@ -1588,6 +1597,38 @@ function wsotCalculate() {
   const okxCapital = parseFloat(document.getElementById('wsotOkxCapital').value) || 1000;
   const levOkx = parseFloat(document.getElementById('wsotLevOkx').value) || 5;
 
+  // === 方向驗證：自動檢查止盈/止損是否符合方向邏輯 ===
+  let validatedTp = bybitTp;
+  let validatedSl = bybitSl;
+  let dirWarning = '';
+  if (bybitEntry > 0 && bybitTp > 0 && bybitSl > 0) {
+    if (wsotDirection === 'long') {
+      // 做多：止盈應 > 進場價，止損應 < 進場價
+      if (bybitTp < bybitEntry && bybitSl > bybitEntry) {
+        // TP/SL 反了，自動交換
+        validatedTp = bybitSl;
+        validatedSl = bybitTp;
+        dirWarning = '⚠ 止盈/止損已自動修正（做多：止盈應高於進場價）';
+      } else if (bybitTp <= bybitEntry) {
+        dirWarning = '⚠ 做多的止盈價應高於進場價';
+      } else if (bybitSl >= bybitEntry) {
+        dirWarning = '⚠ 做多的止損價應低於進場價';
+      }
+    } else {
+      // 做空：止盈應 < 進場價，止損應 > 進場價
+      if (bybitTp > bybitEntry && bybitSl < bybitEntry) {
+        // TP/SL 反了，自動交換
+        validatedTp = bybitSl;
+        validatedSl = bybitTp;
+        dirWarning = '⚠ 止盈/止損已自動修正（做空：止盈應低於進場價）';
+      } else if (bybitTp >= bybitEntry) {
+        dirWarning = '⚠ 做空的止盈價應低於進場價';
+      } else if (bybitSl <= bybitEntry) {
+        dirWarning = '⚠ 做空的止損價應高於進場價';
+      }
+    }
+  }
+
   // === Derived values ===
   const bybitPos = bybitPosVal;
   const okxPos = bybitPosVal; // OKX 對沖倉位 = Bybit 倉位（完全對沖）
@@ -1597,34 +1638,39 @@ function wsotCalculate() {
   // OKX entry = same as Bybit entry
   const okxEntry = bybitEntry;
 
-  // OKX TP/SL = Bybit SL/TP (opposite)
+  // OKX TP/SL = Bybit SL/TP (opposite) — 使用驗證過的值
   // When Bybit long hits SL (price drops), OKX short profits → OKX TP = Bybit SL
   // When Bybit long hits TP (price rises), OKX short loses → OKX SL = Bybit TP
-  const okxTp = bybitSl; // OKX profits when Bybit stops out
-  const okxSl = bybitTp; // OKX stops out when Bybit profits
+  const okxTp = validatedSl; // OKX profits when Bybit stops out
+  const okxSl = validatedTp; // OKX stops out when Bybit profits
 
   // Liquidation distances
   const bybitLiqPct = (1 / levBybit) * 100 * 0.95;
   const okxLiqPct = (1 / levOkx) * 100 * 0.95;
 
-  // Bybit TP/SL percentages
+  // Bybit TP/SL percentages — 使用驗證過的值
   let bybitTpPct = 0, bybitSlPct = 0;
   if (bybitEntry > 0) {
     if (wsotDirection === 'long') {
-      bybitTpPct = bybitTp ? ((bybitTp - bybitEntry) / bybitEntry * 100) : 0;
-      bybitSlPct = bybitSl ? ((bybitSl - bybitEntry) / bybitEntry * 100) : 0;
+      bybitTpPct = validatedTp ? ((validatedTp - bybitEntry) / bybitEntry * 100) : 0;
+      bybitSlPct = validatedSl ? ((validatedSl - bybitEntry) / bybitEntry * 100) : 0;
     } else {
-      bybitTpPct = bybitTp ? ((bybitEntry - bybitTp) / bybitEntry * 100) : 0;
-      bybitSlPct = bybitSl ? ((bybitEntry - bybitSl) / bybitEntry * 100) : 0;
+      bybitTpPct = validatedTp ? ((bybitEntry - validatedTp) / bybitEntry * 100) : 0;
+      bybitSlPct = validatedSl ? ((bybitEntry - validatedSl) / bybitEntry * 100) : 0;
     }
   }
   const riskReward = bybitSlPct !== 0 ? Math.abs(bybitTpPct / bybitSlPct) : 0;
 
-  // Bybit info text
+  // Bybit info text + 方向警告
   const tpSign = bybitTpPct >= 0 ? '+' : '';
   const slSign = bybitSlPct >= 0 ? '+' : '';
-  document.getElementById('wsotBybitInfo').textContent =
-    `止盈 ${tpSign}${bybitTpPct.toFixed(2)}% / 止損 ${slSign}${bybitSlPct.toFixed(2)}% — 風險報酬比 ${riskReward.toFixed(2)}`;
+  if (dirWarning) {
+    document.getElementById('wsotBybitInfo').innerHTML =
+      `<span style="color:var(--accent2);">${dirWarning}</span><br>止盈 ${tpSign}${bybitTpPct.toFixed(2)}% / 止損 ${slSign}${bybitSlPct.toFixed(2)}% — 風險報酬比 ${riskReward.toFixed(2)}`;
+  } else {
+    document.getElementById('wsotBybitInfo').textContent =
+      `止盈 ${tpSign}${bybitTpPct.toFixed(2)}% / 止損 ${slSign}${bybitSlPct.toFixed(2)}% — 風險報酬比 ${riskReward.toFixed(2)}`;
+  }
 
   // === Fee calculation ===
   // Bybit side fee
@@ -1670,8 +1716,8 @@ function wsotCalculate() {
     return { bybitPnl, okxPnl, netPnl, wsotRoi };
   }
 
-  const tpResult = calcPnl(bybitTp);
-  const slResult = calcPnl(bybitSl);
+  const tpResult = calcPnl(validatedTp);
+  const slResult = calcPnl(validatedSl);
 
   // OKX PnL at TP/SL
   const okxTpPnl = slResult.okxPnl; // When Bybit hits SL, OKX profits
@@ -1701,7 +1747,7 @@ function wsotCalculate() {
   // adjTpPrice = entry - (-bybitPnl + totalCosts) × entry / okxPos
   let adjOkxTp = 0;
   let costToRecover = totalCostVal; // total fees + funding
-  if (bybitEntry > 0 && bybitSl > 0 && okxPos > 0) {
+  if (bybitEntry > 0 && validatedSl > 0 && okxPos > 0) {
     const bybitPnlAtSl = slResult.bybitPnl; // negative when wrong direction
     // We want: bybitPnlAtSl + adjOkxPnl - totalCostVal = 0
     // adjOkxPnl = totalCostVal - bybitPnlAtSl
@@ -1728,8 +1774,8 @@ function wsotCalculate() {
   document.getElementById('wsotCostToRecover').style.color = 'var(--red)';
 
   // Calculate adjusted net PnL (should be ~0)
-  if (adjOkxTp > 0 && bybitSl > 0) {
-    const adjResult = calcPnl(bybitSl);
+  if (adjOkxTp > 0 && validatedSl > 0) {
+    const adjResult = calcPnl(validatedSl);
     // Recalculate OKX PnL at adjusted TP price
     const adjOkxMove = (adjOkxTp - bybitEntry) / bybitEntry;
     const adjOkxPnl = wsotDirection === 'long' ? okxPos * (-adjOkxMove) : okxPos * adjOkxMove;
@@ -1765,19 +1811,19 @@ function wsotCalculate() {
 
   // === Update result boxes ===
   const roiTpEl = document.getElementById('wsotRoiTp');
-  roiTpEl.textContent = bybitTp ? ((tpResult.wsotRoi >= 0 ? '+' : '') + tpResult.wsotRoi.toFixed(1) + '%') : '—';
+  roiTpEl.textContent = validatedTp ? ((tpResult.wsotRoi >= 0 ? '+' : '') + tpResult.wsotRoi.toFixed(1) + '%') : '—';
   roiTpEl.style.color = tpResult.wsotRoi >= 0 ? 'var(--green)' : 'var(--red)';
 
   const roiSlEl = document.getElementById('wsotRoiSl');
-  roiSlEl.textContent = bybitSl ? ((slResult.wsotRoi >= 0 ? '+' : '') + slResult.wsotRoi.toFixed(1) + '%') : '—';
+  roiSlEl.textContent = validatedSl ? ((slResult.wsotRoi >= 0 ? '+' : '') + slResult.wsotRoi.toFixed(1) + '%') : '—';
   roiSlEl.style.color = slResult.wsotRoi >= 0 ? 'var(--green)' : 'var(--red)';
 
   const netTpEl = document.getElementById('wsotNetTp');
-  netTpEl.textContent = bybitTp ? ((tpResult.netPnl >= 0 ? '+' : '') + fmt(tpResult.netPnl)) : '—';
+  netTpEl.textContent = validatedTp ? ((tpResult.netPnl >= 0 ? '+' : '') + fmt(tpResult.netPnl)) : '—';
   netTpEl.style.color = tpResult.netPnl >= 0 ? 'var(--green)' : 'var(--red)';
 
   const netSlEl = document.getElementById('wsotNetSl');
-  netSlEl.textContent = bybitSl ? ((slResult.netPnl >= 0 ? '+' : '') + fmt(slResult.netPnl)) : '—';
+  netSlEl.textContent = validatedSl ? ((slResult.netPnl >= 0 ? '+' : '') + fmt(slResult.netPnl)) : '—';
   netSlEl.style.color = slResult.netPnl >= 0 ? 'var(--green)' : 'var(--red)';
 
   document.getElementById('wsotBybitPos').textContent = '$' + fmtNum(bybitPos);
@@ -1806,7 +1852,7 @@ function wsotCalculate() {
   let tips = `<strong>📊 對沖方案分析：</strong><br>`;
   tips += `• Bybit ${wsotDirection === 'long' ? '做多' : '做空'} $${fmtNum(bybitPos)}，入金 $${fmt(deposit)}，${levBybit}x 槓桿，爆倉距離 ${bybitLiqPct.toFixed(1)}%<br>`;
   tips += `• OKX ${wsotDirection === 'long' ? '做空' : '做多'} $${fmtNum(okxPos)}，資金 $${fmt(okxCapital)}，${levOkx}x 槓桿，爆倉距離 ${okxLiqPct.toFixed(1)}%<br>`;
-  if (bybitTp && bybitSl) {
+  if (validatedTp && validatedSl) {
     tips += `<br><strong>🎯 止盈止損情境：</strong><br>`;
     tips += `• <span style="color:var(--green);">看對（Bybit 止盈）：</span>Bybit ${tpResult.bybitPnl >= 0 ? '+' : ''}${fmt(tpResult.bybitPnl)}，OKX ${tpResult.okxPnl >= 0 ? '+' : ''}${fmt(tpResult.okxPnl)}，淨 ${tpResult.netPnl >= 0 ? '+' : ''}${fmt(tpResult.netPnl)}，WSOT ROI ${tpResult.wsotRoi >= 0 ? '+' : ''}${tpResult.wsotRoi.toFixed(1)}%<br>`;
     tips += `• <span style="color:var(--red);">看錯（Bybit 止損）：</span>Bybit ${slResult.bybitPnl >= 0 ? '+' : ''}${fmt(slResult.bybitPnl)}，OKX ${slResult.okxPnl >= 0 ? '+' : ''}${fmt(slResult.okxPnl)}，淨 ${slResult.netPnl >= 0 ? '+' : ''}${fmt(slResult.netPnl)}<br>`;
