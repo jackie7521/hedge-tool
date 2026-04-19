@@ -1715,7 +1715,10 @@ loadLeaderboard();
 renderPositions();
 startPositionMonitor();
 initGistUI();
-// Initial WSOT calculation
+// Bind all WSOT inputs to auto-recalculate
+document.querySelectorAll('#page-wsot input[type="number"], #page-wsot input[type="text"]').forEach(el => {
+  el.addEventListener('input', wsotCalculate);
+});
 wsotCalculate();
 </script>
 </body>
