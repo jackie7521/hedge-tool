@@ -486,6 +486,8 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
   </div>
 
 
+  <button class="btn-main" onclick="confirmWsotOrder()" style="background:linear-gradient(135deg,var(--accent2),#e09800);margin-top:8px;">確認開單 — 記錄到倉位管理</button>
+
   <div class="info-box" id="wsotInfoBox">
     <strong>💡 WSOT 對沖策略說明：</strong><br>
     • WSOT 只計算 Bybit 帳戶的 PnL%，Bitget 的盈虧不算在比賽成績內<br>
@@ -701,6 +703,61 @@ const COIN_MAP_BYBIT=(c)=> c.includes('USDT') ? c : `${c}USDT`;
 function setStatusEl(id,text,ok){const el=document.getElementById(id);el.textContent=text;el.style.color=ok?'var(--green)':'var(--red)';}
 function setBtnState(btn,state){btn.classList.remove('loading','success','fail');if(state)btn.classList.add(state);btn.textContent=state==='loading'?'抓取中…':'抓取';}
 
+
+// ==================== CONFIRM WSOT ORDER ====================
+function confirmWsotOrder() {
+  const coin = document.getElementById('wsotCoin').value.trim().toUpperCase();
+  if (!coin) { showToast('請先輸入幣種'); return; }
+  const entryPrice = v('wsotBybitEntry');
+  if (!entryPrice) { showToast('請填入進場價'); return; }
+  const deposit = v('wsotDeposit');
+  const levBybit = v('wsotLevBybit');
+  const levBitget = v('wsotLevBitget');
+  const bybitPos = deposit * levBybit;
+  const bitgetCapital = v('wsotBitgetCapital');
+  const bitgetPos = bitgetCapital * levBitget;
+  const feeRate = v('wsotFeeRate');
+  const bybitFr = v('wsotBybitFr');
+  const bitgetFr = v('wsotBitgetFr');
+  const tp = v('wsotBybitTp');
+  const sl = v('wsotBybitSl');
+
+  const order = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2,6),
+    coin: coin,
+    entryPrice: entryPrice,
+    positionUsdt: bybitPos,
+    leverageA: levBybit,
+    leverageB: levBitget,
+    platformA: 'bybit',
+    platformB: 'bitget',
+    orderType: wsotBybitOrder === 'limit' ? 'maker' : 'taker',
+    feeRateA: feeRate,
+    feeRateB: feeRate,
+    bitgetFunding: bitgetFr,
+    bybitFunding: bybitFr,
+    // WSOT-specific fields
+    wsot: true,
+    direction: wsotDirection,
+    deposit: deposit,
+    bitgetCapital: bitgetCapital,
+    bitgetPosUsdt: bitgetPos,
+    tp: tp,
+    sl: sl,
+    status: 'pending',
+    createdAt: Date.now(),
+    filledAt: null,
+    accumulatedFunding: 0,
+    lastFundingCheck: null,
+    fundingHistory: [],
+  };
+
+  const positions = loadPositions();
+  positions.push(order);
+  savePositions(positions);
+  renderPositions();
+  showToast(`已建立 ${coin}/USDT WSOT 對沖單，切換到倉位管理查看`);
+}
 
 // ==================== POSITION MANAGEMENT ====================
 // Data stored in localStorage
@@ -951,11 +1008,17 @@ function renderPositions() {
         diffCls = Math.abs(diff) < 0.5 ? 'green' : (Math.abs(diff) < 2 ? 'yellow' : 'red');
         if (Math.abs(diff) < 0.5) { statusCls = 'status-near'; statusText = '接近成交'; }
       }
+      const wsotBadge = p.wsot ? '<span style="font-size:.6rem;background:rgba(247,166,0,.15);color:var(--accent2);padding:1px 6px;border-radius:99px;margin-left:6px;">WSOT</span>' : '';
+      const dirLabel = p.wsot
+        ? `<span class="${p.direction==='long'?'direction-long':'direction-short'}">${p.direction==='long'?'做多 ▲':'做空 ▼'}</span>`
+        : '<span class="direction-long">做多</span> + <span class="direction-short">做空</span>';
+      const tpslInfo = p.wsot && p.tp && p.sl
+        ? `<div style="font-size:.65rem;color:var(--muted);margin-top:2px;">TP ${fmtPrice(p.tp)} / SL ${fmtPrice(p.sl)}</div>` : '';
       ph += `<tr>
-        <td><span class="symbol-name">${p.coin}</span><span class="symbol-pair"> / USDT</span></td>
-        <td><span class="direction-long">做多</span> + <span class="direction-short">做空</span></td>
+        <td><span class="symbol-name">${p.coin}</span><span class="symbol-pair"> / USDT</span>${wsotBadge}</td>
+        <td>${dirLabel}</td>
         <td>${pn(p.platformA)} / ${pn(p.platformB)}</td>
-        <td class="mono">${fmtPrice(p.entryPrice)}</td>
+        <td class="mono">${fmtPrice(p.entryPrice)}${tpslInfo}</td>
         <td class="mono">${curStr}</td>
         <td class="mono ${diffCls}">${diffStr}</td>
         <td class="mono">${fmt(p.positionUsdt)}</td>
@@ -982,9 +1045,13 @@ function renderPositions() {
       const tradeFee = p.tradeFee || 0;
       const totalCost = funding + tradeFee;
       const settlements = p.fundingHistory ? p.fundingHistory.length : 0;
+      const activeWsotBadge = p.wsot ? ' <span style="font-size:.6rem;background:rgba(247,166,0,.15);color:var(--accent2);padding:1px 6px;border-radius:99px;">WSOT</span>' : '';
+      const activeDirLabel = p.wsot
+        ? `${pn(p.platformA)} <span class="${p.direction==='long'?'direction-long':'direction-short'}">${p.direction==='long'?'做多':'做空'}</span> / ${pn(p.platformB)} <span class="${p.direction==='long'?'direction-short':'direction-long'}">${p.direction==='long'?'做空':'做多'}</span>`
+        : `${pn(p.platformA)} <span class="direction-long">做多</span> / ${pn(p.platformB)} <span class="direction-short">做空</span>`;
       ah += `<tr>
-        <td><span class="symbol-name">${p.coin}</span><span class="symbol-pair"> / USDT</span></td>
-        <td>${pn(p.platformA)} <span class="direction-long">做多</span> / ${pn(p.platformB)} <span class="direction-short">做空</span></td>
+        <td><span class="symbol-name">${p.coin}</span><span class="symbol-pair"> / USDT</span>${activeWsotBadge}</td>
+        <td>${activeDirLabel}</td>
         <td class="mono">${fmtPrice(p.entryPrice)}</td>
         <td class="mono">${fmt(p.positionUsdt)} <span class="dim" style="font-size:.7rem;">(${p.leverageA}x/${p.leverageB}x)</span></td>
         <td style="font-size:.78rem;">${filledTime}</td>
