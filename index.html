@@ -300,8 +300,8 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
     </div>
     <div class="summary-grid">
       <div class="summary-box"><div class="label">倉位名目價值</div><div class="value" id="sumNotional" style="color:var(--text);">—</div></div>
-      <div class="summary-box"><div class="label">對沖總成本</div><div class="value" id="sumCost" style="color:var(--red);">—</div></div>
-      <div class="summary-box"><div class="label">成本佔倉位比</div><div class="value" id="sumPct" style="color:var(--accent2);">—</div></div>
+      <div class="summary-box"><div class="label">對沖損益</div><div class="value" id="sumCost" style="color:var(--red);">—</div></div>
+      <div class="summary-box"><div class="label">損益佔倉位比</div><div class="value" id="sumPct" style="color:var(--accent2);">—</div></div>
     </div>
     <div class="summary-grid" style="margin-top:12px;">
       <div class="summary-box"><div class="label">所需保證金 (A)</div><div class="value" id="marginA" style="color:var(--text);font-size:1.1rem;">—</div></div>
@@ -668,26 +668,31 @@ function calculate(){
     {i:`提幣手續費 (${transfers}次)`,p:'跨平台',f:`${fmt(withdrawFeeUnit)} × ${transfers}`,v:wTotal,c:'red'},
   ];
   let h='';rows.forEach(r=>{h+=`<tr><td>${r.i}</td><td>${r.p}</td><td style="color:var(--muted);font-size:.78rem;">${r.f}</td><td class="val ${r.c}">${r.v<0?'':''} ${fmt(Math.abs(r.v))}${r.v<0?' ↓':''}</td></tr>`;});
-  h+=`<tr class="total-row"><td colspan="3">對沖總成本${total<0?'（淨收入）':''}</td><td class="val ${total>=0?'red':'green'}">${total<0?'-':''}${fmt(Math.abs(total))} USDT</td></tr>`;
+  // 損益 = -total（成本為正時虧錢，成本為負時賺錢）
+  const pnl = -total;
+  h+=`<tr class="total-row"><td colspan="3">對沖損益</td><td class="val ${pnl>=0?'green':'red'}">${pnl>=0?'+':''}${fmt(pnl)} USDT</td></tr>`;
   document.getElementById('resultBody').innerHTML=h;
   document.getElementById('sumNotional').textContent=fmt(notional)+' USDT';
-  document.getElementById('sumCost').textContent=(total<0?'-':'')+fmt(Math.abs(total))+' USDT';
-  document.getElementById('sumCost').style.color=total>=0?'var(--red)':'var(--green)';
-  document.getElementById('sumPct').textContent=costPct.toFixed(4)+'%';
+  document.getElementById('sumCost').textContent=(pnl>=0?'+':'')+fmt(pnl)+' USDT';
+  document.getElementById('sumCost').style.color=pnl>=0?'var(--green)':'var(--red)';
+  const pnlPct = (-costPct);
+  document.getElementById('sumPct').textContent=(pnlPct>=0?'+':'')+pnlPct.toFixed(4)+'%';
+  document.getElementById('sumPct').style.color=pnlPct>=0?'var(--green)':'var(--red)';
   document.getElementById('marginA').textContent=fmt(notional/levA)+' USDT';
   document.getElementById('marginB').textContent=fmt(notional/levB)+' USDT';
   const fnEl=document.getElementById('fundingNet');
   fnEl.textContent=(fNet8>=0?'付 ':'收 ')+fmt(Math.abs(fNet8))+' USDT';
   fnEl.style.color=fNet8>=0?'var(--red)':'var(--green)';
   const tf=cAo+cAc+cBo+cBc;const ac=Math.abs(total);
-  let tips=`<strong>📊 成本結構分析：</strong><br>`;
-  tips+=`• 交易手續費：${fmt(tf)} USDT（佔 ${ac>0?(tf/ac*100).toFixed(1):'0'}%）<br>`;
-  tips+=`• 資金費率：${fTotal>=0?'付出':'收入'} ${fmt(Math.abs(fTotal))} USDT（佔 ${ac>0?(Math.abs(fTotal)/ac*100).toFixed(1):'0'}%，${holdDays}天共${ft}次結算）<br>`;
-  tips+=`• 滑點：${fmt(slT)} USDT（佔 ${ac>0?(slT/ac*100).toFixed(1):'0'}%）<br>`;
+  let tips=`<strong>📊 損益結構分析：</strong><br>`;
+  tips+=`• 交易手續費支出：-${fmt(tf)} USDT<br>`;
+  tips+=`• 資金費率：${fTotal>=0?'支出 -':'收入 +'}${fmt(Math.abs(fTotal))} USDT（${holdDays}天共${ft}次結算）<br>`;
+  tips+=`• 滑點支出：-${fmt(slT)} USDT<br>`;
+  tips+=`• <strong>最終損益：<span style="color:${pnl>=0?'var(--green)':'var(--red)'};">${pnl>=0?'+':''}${fmt(pnl)} USDT（${pnl>=0?'賺':'虧'}）</span></strong><br>`;
   tips+=`<br><strong>💡 優化建議：</strong><br>`;
   tips+=`• 使用限價單可節省 50-60% 手續費，但需承擔不成交風險<br>`;
   if(fNet8<0)tips+=`• <span style="color:var(--green);">✓ 目前費率組合有利！做空端收入 > 做多端支出，持倉越久越賺</span><br>`;
-  else if(fNet8>0)tips+=`• <span style="color:var(--accent2);">⚠ 費率方向不利，持倉越久成本越高，建議等費率翻轉再進場</span><br>`;
+  else if(fNet8>0)tips+=`• <span style="color:var(--accent2);">⚠ 費率方向不利，持倉越久虧越多，建議等費率翻轉再進場</span><br>`;
   tips+=`• 所需總資金 = ${fmt(notional/levA+notional/levB)} USDT（雙平台保證金合計）<br>`;
   tips+=`• 提幣走 TRC-20 最便宜（~1 USDT），避免 ERC-20（~3-10 USDT）`;
   if(notional>50000)tips+=`<br>• <span style="color:var(--accent2);">倉位 > 50K，建議分批掛單開倉降低滑點</span>`;
