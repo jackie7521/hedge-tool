@@ -363,6 +363,46 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
     </div>
 
     <div class="info-box" id="arbInfoBox"></div>
+
+    <button class="btn-main" onclick="confirmArbOrder()" style="margin-top:16px;margin-bottom:0;background:linear-gradient(135deg,var(--accent),#6c5ce7);">開始套利 — 記錄倉位</button>
+  </div>
+
+  <!-- Arbitrage Position Management -->
+  <div class="card" style="margin-top:20px;" id="arbPosPanel">
+    <div class="card-title" style="color:var(--accent);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      套利倉位管理
+      <span class="badge" style="background:rgba(0,212,170,.15);color:var(--accent);" id="arbPosBadge">0</span>
+      <span id="arbPosRefreshStatus" style="margin-left:auto;font-size:.68rem;color:var(--muted);font-weight:400;"></span>
+    </div>
+
+    <!-- Alert Banner -->
+    <div id="arbAlertBanner" style="display:none;background:rgba(255,77,106,.1);border:1px solid var(--red);border-radius:10px;padding:12px 16px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+        <span style="font-size:1.1rem;">🚨</span>
+        <span style="font-weight:700;color:var(--red);">費率警報</span>
+      </div>
+      <div id="arbAlertContent" style="font-size:.8rem;color:var(--text);line-height:1.6;"></div>
+    </div>
+
+    <div class="table-wrap" style="border:none;">
+      <table class="lb-table" style="min-width:1200px;">
+        <thead><tr>
+          <th>幣種</th>
+          <th>方向</th>
+          <th>進場價</th>
+          <th>現價</th>
+          <th>倉位</th>
+          <th>Bybit 爆倉距離</th>
+          <th>Bitget 爆倉距離</th>
+          <th>當前費率差</th>
+          <th>累計收益</th>
+          <th>持倉時長</th>
+          <th>操作</th>
+        </tr></thead>
+        <tbody id="arbPosBody"><tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">尚無套利倉位，請在上方試算後點擊「開始套利」</td></tr></tbody>
+      </table>
+    </div>
   </div>
 </div>
 
@@ -1068,6 +1108,231 @@ function calcArbitrage() {
   tips += `<br>• 使用限價單可減少約 60% 手續費，加速回本<br>`;
   tips += `• 建議費率差 < 0.005% 時考慮換幣或離場`;
   document.getElementById('arbInfoBox').innerHTML = tips;
+}
+
+// ==================== ARBITRAGE POSITION MANAGEMENT ====================
+function loadArbPositions() {
+  try { return JSON.parse(localStorage.getItem('arbPositions') || '[]'); } catch(e) { return []; }
+}
+function saveArbPositions(arr) {
+  localStorage.setItem('arbPositions', JSON.stringify(arr));
+  renderArbPositions();
+}
+
+function confirmArbOrder() {
+  if (!arbSelectedCoin) { showToast('請先從排行榜選擇一個幣種'); return; }
+  const d = arbSelectedCoin;
+  const capital = v('arbCapital');
+  const leverage = v('arbLeverage');
+  if (!capital || !leverage) { showToast('請填入資金和槓桿'); return; }
+
+  const bybitRate = v('arbBybitRate') / 100;
+  const bitgetRate = v('arbBitgetRate') / 100;
+  const feeRatePct = v('arbFeeRate');
+  const feeRate = arbOrderType === 'maker' ? feeRatePct / 100 : (feeRatePct * 2.5) / 100;
+  const marginPerSide = capital / 2;
+  const posPerSide = marginPerSide * leverage;
+
+  let dirBybit, dirBitget;
+  if (bybitRate > bitgetRate) { dirBybit = 'short'; dirBitget = 'long'; }
+  else { dirBybit = 'long'; dirBitget = 'short'; }
+
+  const order = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+    coin: d.symbol.replace('USDT', ''),
+    symbol: d.symbol,
+    entryPrice: d.lastPrice,
+    capital: capital,
+    leverage: leverage,
+    positionUsdt: posPerSide,
+    dirBybit: dirBybit,
+    dirBitget: dirBitget,
+    entryBybitRate: bybitRate,
+    entryBitgetRate: bitgetRate,
+    entryRateDiff: Math.abs(bybitRate - bitgetRate),
+    feeRate: feeRate,
+    openFee: posPerSide * feeRate * 2 * 2,
+    withdrawFee: v('arbWithdrawFee'),
+    currentBybitRate: bybitRate,
+    currentBitgetRate: bitgetRate,
+    currentRateDiff: Math.abs(bybitRate - bitgetRate),
+    accumulatedIncome: 0,
+    settlements: 0,
+    status: 'active',
+    createdAt: Date.now(),
+    alerts: [],
+  };
+
+  const positions = loadArbPositions();
+  positions.push(order);
+  saveArbPositions(positions);
+  showToast(`已建立 ${order.coin} 套利倉位！開始監控費率`);
+}
+
+function closeArbPosition(id) {
+  if (!confirm('確定要平倉此套利倉位？')) return;
+  let positions = loadArbPositions();
+  positions = positions.filter(p => p.id !== id);
+  saveArbPositions(positions);
+  showToast('已平倉');
+}
+
+function renderArbPositions() {
+  const positions = loadArbPositions();
+  document.getElementById('arbPosBadge').textContent = positions.length;
+
+  if (positions.length === 0) {
+    document.getElementById('arbPosBody').innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">尚無套利倉位，請在上方試算後點擊「開始套利」</td></tr>';
+    document.getElementById('arbAlertBanner').style.display = 'none';
+    return;
+  }
+
+  let alerts = [];
+  let html = '';
+  positions.forEach(p => {
+    const elapsed = timeAgo(p.createdAt);
+    const curPrice = positionPriceCache[p.coin] || p.entryPrice;
+
+    // Liquidation distances
+    const bybitLiq = p.dirBybit === 'long'
+      ? p.entryPrice * (1 - 1 / p.leverage * 0.95)
+      : p.entryPrice * (1 + 1 / p.leverage * 0.95);
+    const bitgetLiq = p.dirBitget === 'long'
+      ? p.entryPrice * (1 - 1 / p.leverage * 0.95)
+      : p.entryPrice * (1 + 1 / p.leverage * 0.95);
+    const bybitLiqDist = curPrice > 0 ? (Math.abs(curPrice - bybitLiq) / curPrice * 100) : 0;
+    const bitgetLiqDist = curPrice > 0 ? (Math.abs(curPrice - bitgetLiq) / curPrice * 100) : 0;
+    const bybitLiqCls = bybitLiqDist < 5 ? 'red' : bybitLiqDist < 15 ? 'yellow' : 'green';
+    const bitgetLiqCls = bitgetLiqDist < 5 ? 'red' : bitgetLiqDist < 15 ? 'yellow' : 'green';
+
+    // Current rate diff
+    const rateDiffPct = (p.currentRateDiff * 100).toFixed(4);
+    const rateDiffCls = p.currentRateDiff * 100 >= 0.03 ? 'rate-diff-high' : p.currentRateDiff * 100 >= 0.01 ? 'rate-diff-mid' : 'rate-diff-low';
+
+    // Check alerts
+    if (p.currentRateDiff * 100 < 0.01) {
+      alerts.push(`<span style="color:var(--red);font-weight:700;">${p.coin}</span> 費率差已縮小至 ${rateDiffPct}%，建議考慮平倉！`);
+    }
+    // Check if direction flipped
+    const nowBybitHigher = p.currentBybitRate > p.currentBitgetRate;
+    const entryBybitHigher = p.entryBybitRate > p.entryBitgetRate;
+    if (nowBybitHigher !== entryBybitHigher && p.currentRateDiff * 100 > 0.005) {
+      alerts.push(`<span style="color:var(--red);font-weight:700;">${p.coin}</span> 費率方向已翻轉！開倉時 ${entryBybitHigher ? 'Bybit > Bitget' : 'Bitget > Bybit'}，現在 ${nowBybitHigher ? 'Bybit > Bitget' : 'Bitget > Bybit'}，正在倒虧費率！`);
+    }
+    // Liquidation warning
+    if (bybitLiqDist < 5 || bitgetLiqDist < 5) {
+      alerts.push(`<span style="color:var(--red);font-weight:700;">${p.coin}</span> 爆倉距離過近！Bybit ${bybitLiqDist.toFixed(1)}% / Bitget ${bitgetLiqDist.toFixed(1)}%`);
+    }
+
+    // Accumulated income estimate
+    const incomeStr = p.accumulatedIncome >= 0 ? '+$' + fmt(p.accumulatedIncome) : '-$' + fmt(Math.abs(p.accumulatedIncome));
+    const incomeCls = p.accumulatedIncome >= 0 ? 'green' : 'red';
+
+    html += `<tr>
+      <td><span class="symbol-name">${p.coin}</span><span class="symbol-pair"> / USDT</span></td>
+      <td style="font-size:.75rem;">
+        Bybit <span class="${p.dirBybit === 'long' ? 'direction-long' : 'direction-short'}">${p.dirBybit === 'long' ? '做多' : '做空'}</span><br>
+        Bitget <span class="${p.dirBitget === 'long' ? 'direction-long' : 'direction-short'}">${p.dirBitget === 'long' ? '做多' : '做空'}</span>
+      </td>
+      <td class="mono">${fmtPrice(p.entryPrice)}</td>
+      <td class="mono">${fmtPrice(curPrice)}</td>
+      <td class="mono">$${fmtNum(p.positionUsdt)}<span class="dim" style="font-size:.68rem;"> (${p.leverage}x)</span></td>
+      <td class="mono ${bybitLiqCls}" style="font-weight:600;">${bybitLiqDist.toFixed(1)}%<div style="font-size:.65rem;color:var(--muted);font-weight:400;">${fmtPrice(bybitLiq)}</div></td>
+      <td class="mono ${bitgetLiqCls}" style="font-weight:600;">${bitgetLiqDist.toFixed(1)}%<div style="font-size:.65rem;color:var(--muted);font-weight:400;">${fmtPrice(bitgetLiq)}</div></td>
+      <td>
+        <span class="rate-diff-badge ${rateDiffCls}">${rateDiffPct}%</span>
+        <div style="font-size:.6rem;color:var(--muted);margin-top:3px;">開倉 ${(p.entryRateDiff * 100).toFixed(4)}%</div>
+      </td>
+      <td class="mono ${incomeCls}" style="font-weight:600;">${incomeStr}<div style="font-size:.65rem;color:var(--muted);font-weight:400;">${p.settlements} 次結算</div></td>
+      <td><span class="time-elapsed">${elapsed}</span></td>
+      <td><button class="pos-del-btn" onclick="closeArbPosition('${p.id}')">平倉</button></td>
+    </tr>`;
+  });
+
+  document.getElementById('arbPosBody').innerHTML = html;
+
+  // Show alerts
+  if (alerts.length > 0) {
+    document.getElementById('arbAlertBanner').style.display = 'block';
+    document.getElementById('arbAlertContent').innerHTML = alerts.map(a => '• ' + a).join('<br>');
+  } else {
+    document.getElementById('arbAlertBanner').style.display = 'none';
+  }
+}
+
+// Live update arb positions (rates + prices) every 60s
+async function updateArbPositions() {
+  const positions = loadArbPositions();
+  if (positions.length === 0) return;
+
+  let updated = false;
+  for (const p of positions) {
+    try {
+      // Fetch current rates
+      const bSym = p.symbol;
+      const bitgetSym = COIN_MAP_BITGET(bSym);
+
+      const [bybitRes, bitgetRes, priceRes] = await Promise.allSettled([
+        fetch(`https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${bSym}&limit=1`),
+        fetch(`https://api.bitget.com/api/v2/mix/market/current-fund-rate?symbol=${bitgetSym}&productType=USDT-FUTURES`),
+        fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${bSym}`)
+      ]);
+
+      if (bybitRes.status === 'fulfilled') {
+        const bj = await bybitRes.value.json();
+        if (bj.retCode === 0 && bj.result?.list?.length > 0) {
+          p.currentBybitRate = parseFloat(bj.result.list[0].fundingRate);
+        }
+      }
+      if (bitgetRes.status === 'fulfilled') {
+        const oj = await bitgetRes.value.json();
+        if (oj.code === '00000' && oj.data?.length > 0) {
+          p.currentBitgetRate = parseFloat(oj.data[0].fundingRate);
+        }
+      }
+      if (priceRes.status === 'fulfilled') {
+        const pj = await priceRes.value.json();
+        if (pj.retCode === 0 && pj.result?.list?.length > 0) {
+          positionPriceCache[p.coin] = parseFloat(pj.result.list[0].lastPrice);
+        }
+      }
+
+      p.currentRateDiff = Math.abs(p.currentBybitRate - p.currentBitgetRate);
+
+      // Estimate accumulated income
+      const hoursElapsed = (Date.now() - p.createdAt) / (1000 * 60 * 60);
+      const settlementsEst = Math.floor(hoursElapsed / 8);
+      // Net rate: direction-aware
+      let netRate;
+      if (p.dirBybit === 'short') {
+        netRate = p.currentBybitRate - p.currentBitgetRate; // short Bybit receives, long Bitget pays
+      } else {
+        netRate = p.currentBitgetRate - p.currentBybitRate; // short Bitget receives, long Bybit pays
+      }
+      // Use average of entry and current rate for estimate
+      const avgNetRate = (p.entryRateDiff + Math.abs(netRate)) / 2;
+      p.accumulatedIncome = p.positionUsdt * avgNetRate * settlementsEst - p.openFee - p.withdrawFee;
+      p.settlements = settlementsEst;
+
+      updated = true;
+    } catch(e) { /* skip failed updates */ }
+  }
+
+  if (updated) {
+    saveArbPositions(positions);
+    document.getElementById('arbPosRefreshStatus').innerHTML =
+      `<span class="live-dot on" style="width:5px;height:5px;margin-right:3px;"></span>已更新 — ${new Date().toLocaleTimeString()}`;
+  }
+}
+
+// Start arb position monitor
+let arbPosTimer = null;
+function startArbPosMonitor() {
+  renderArbPositions();
+  // Update immediately then every 60s
+  setTimeout(updateArbPositions, 2000);
+  if (arbPosTimer) clearInterval(arbPosTimer);
+  arbPosTimer = setInterval(updateArbPositions, 60000);
 }
 
 // ==================== CONFIRM WSOT ORDER ====================
@@ -2169,6 +2434,8 @@ setTimeout(() => fetchWsotFundingSilent(), 1500);
 document.querySelectorAll('#page-arbitrage input[type="number"]').forEach(el => {
   el.addEventListener('input', calcArbitrage);
 });
+// Init arb position management
+startArbPosMonitor();
 // Auto-load arb data on first visit
 let arbLoaded = false;
 const origSwitchPage = switchPage;
