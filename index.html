@@ -374,7 +374,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
         Bybit（比賽帳戶）
       </div>
-      <div class="form-row"><label>幣種</label><input type="text" id="wsotCoin" value="BTC" placeholder="幣種" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()"><span class="unit">/ USDT</span><button class="btn-fetch" onclick="fetchWsotPrice()">抓現價</button></div>
+      <div class="form-row"><label>幣種</label><input type="text" id="wsotCoin" value="BTC" placeholder="幣種" style="text-transform:uppercase;" oninput="this.value=this.value.toUpperCase()" onchange="onWsotCoinChange()"><span class="unit">/ USDT</span><button class="btn-fetch" onclick="fetchWsotPrice()">抓現價</button></div>
       <div class="form-row"><label>方向</label>
         <div class="toggle-row" style="flex:1;">
           <button class="toggle-btn active" id="wsotDirLong" onclick="setWsotDir('long',this)">做多 ▲</button>
@@ -399,7 +399,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="form-row"><label>持倉天數</label><input type="number" id="wsotHoldDays" value="7" min="0" max="90" step="1"><span class="unit">天</span></div>
       <div class="form-row"><label>Bybit 資金費率</label><input type="number" id="wsotBybitFr" value="0.01" step="0.0001"><span class="unit">% / 8hr</span><button class="btn-fetch" onclick="fetchWsotFunding()">抓取</button></div>
       <div class="form-row"><label>Bitget 資金費率</label><input type="number" id="wsotBitgetFr" value="0.0038" step="0.0001"><span class="unit">% / 8hr</span></div>
-      <div class="api-status" id="wsotFrStatus">資金費率每 8 小時結算一次，每天 3 次</div>
+      <div class="api-status" id="wsotFrStatus"><span class="live-dot on" style="width:6px;height:6px;margin-right:4px;"></span>資金費率自動更新中（每 60 秒）</div>
       <div class="form-row"><label>手續費率</label><input type="number" id="wsotFeeRate" value="0.02" step="0.001"><span class="unit">%</span></div>
       <div class="api-status">限價單 maker 0.02% / 市價單 taker 0.05%~0.055%</div>
     </div>
@@ -1345,6 +1345,62 @@ async function fetchWsotPrice() {
   } catch(e) { showToast('抓取失敗: ' + e.message); }
 }
 
+// Auto-fetch funding when coin changes (with debounce)
+let wsotCoinDebounce = null;
+function onWsotCoinChange() {
+  clearTimeout(wsotCoinDebounce);
+  wsotCoinDebounce = setTimeout(() => {
+    const coin = document.getElementById('wsotCoin').value.trim().toUpperCase();
+    if (coin.length >= 2) {
+      fetchWsotPrice();
+      fetchWsotFunding();
+    }
+  }, 500);
+}
+
+// Periodic auto-refresh for funding rates (every 60s)
+let wsotFundingTimer = null;
+function startWsotFundingAutoRefresh() {
+  if (wsotFundingTimer) clearInterval(wsotFundingTimer);
+  wsotFundingTimer = setInterval(() => {
+    const coin = document.getElementById('wsotCoin').value.trim().toUpperCase();
+    if (coin && document.getElementById('page-wsot').classList.contains('active')) {
+      fetchWsotFundingSilent();
+    }
+  }, 60000);
+}
+
+// Silent version (no toast, just update values)
+async function fetchWsotFundingSilent() {
+  const coin = document.getElementById('wsotCoin').value.trim().toUpperCase();
+  if (!coin) return;
+  const statusEl = document.getElementById('wsotFrStatus');
+  try {
+    const bSym = coin.includes('USDT') ? coin : coin + 'USDT';
+    const [br, or] = await Promise.allSettled([
+      fetch(`https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${bSym}&limit=1`),
+      fetch(`https://api.bitget.com/api/v2/mix/market/current-fund-rate?symbol=${COIN_MAP_BITGET(coin)}&productType=USDT-FUTURES`)
+    ]);
+    if (br.status === 'fulfilled') {
+      const bj = await br.value.json();
+      if (bj.retCode === 0 && bj.result?.list?.length > 0) {
+        document.getElementById('wsotBybitFr').value = (parseFloat(bj.result.list[0].fundingRate) * 100).toFixed(4);
+      }
+    }
+    if (or.status === 'fulfilled') {
+      const oj = await or.value.json();
+      if (oj.code === '00000' && oj.data?.length > 0) {
+        document.getElementById('wsotBitgetFr').value = (parseFloat(oj.data[0].fundingRate) * 100).toFixed(4);
+      }
+    }
+    statusEl.innerHTML = `<span class="live-dot on" style="width:6px;height:6px;margin-right:4px;"></span>✓ ${coin} 費率已自動更新 — ${new Date().toLocaleTimeString()}`;
+    statusEl.style.color = 'var(--green)';
+    wsotCalculate();
+  } catch(e) {
+    // Silent fail — keep last values
+  }
+}
+
 async function fetchWsotFunding() {
   const coin = document.getElementById('wsotCoin').value.trim().toUpperCase();
   if (!coin) return;
@@ -1366,9 +1422,8 @@ async function fetchWsotFunding() {
       const oRate = parseFloat(oj.data[0].fundingRate);
       document.getElementById('wsotBitgetFr').value = (oRate * 100).toFixed(4);
     }
-    statusEl.textContent = `✓ 已抓取 ${coin} 雙平台資金費率 — ${new Date().toLocaleTimeString()}`;
+    statusEl.innerHTML = `<span class="live-dot on" style="width:6px;height:6px;margin-right:4px;"></span>✓ ${coin} 費率已更新 — ${new Date().toLocaleTimeString()}（每 60 秒自動刷新）`;
     statusEl.style.color = 'var(--green)';
-    showToast(`已抓取 ${coin} 資金費率`);
     wsotCalculate();
   } catch(e) {
     statusEl.textContent = `✗ 部分費率抓取失敗: ${e.message}`;
@@ -1688,7 +1743,21 @@ initGistUI();
 document.querySelectorAll('#page-wsot input[type="number"], #page-wsot input[type="text"]').forEach(el => {
   el.addEventListener('input', wsotCalculate);
 });
+// Also auto-fetch funding when coin text input changes (typing)
+document.getElementById('wsotCoin').addEventListener('input', () => {
+  clearTimeout(wsotCoinDebounce);
+  wsotCoinDebounce = setTimeout(() => {
+    const coin = document.getElementById('wsotCoin').value.trim().toUpperCase();
+    if (coin.length >= 2) {
+      fetchWsotFunding();
+    }
+  }, 800);
+});
 wsotCalculate();
+// Start auto-refresh for funding rates
+startWsotFundingAutoRefresh();
+// Initial fetch on page load
+setTimeout(() => fetchWsotFundingSilent(), 1500);
 </script>
 </body>
 </html>
