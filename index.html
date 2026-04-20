@@ -291,6 +291,14 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <div class="lb-controls" style="margin-bottom:10px;">
       <div class="search-box" style="max-width:220px;"><input type="text" id="arbSearch" placeholder="搜尋幣種…" oninput="renderArbTable()"></div>
       <div class="filter-chip active" id="arbFilterAvail" onclick="arbFilterAvailable=!arbFilterAvailable;this.classList.toggle('active');renderArbTable()">僅顯示可套利</div>
+      <div class="filter-chip active" id="arbFilterVol" onclick="arbFilterLowVol=!arbFilterLowVol;this.classList.toggle('active');renderArbTable()">過濾低交易量</div>
+      <select id="arbMinVol" onchange="renderArbTable()" style="background:var(--input-bg);border:1px solid var(--border);border-radius:6px;padding:4px 8px;color:var(--text);font-size:.78rem;">
+        <option value="1000000">交易量 > 1M</option>
+        <option value="5000000">交易量 > 5M</option>
+        <option value="10000000" selected>交易量 > 10M</option>
+        <option value="50000000">交易量 > 50M</option>
+        <option value="100000000">交易量 > 100M</option>
+      </select>
       <span class="count-info" id="arbCount"></span>
       <button class="btn-fetch" onclick="loadArbData()" id="btnArbRefresh" style="margin-left:auto;">重新掃描</button>
     </div>
@@ -304,9 +312,10 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
           <th onclick="arbSortBy('rateDiff')" style="color:var(--accent);">費率差 ▼</th>
           <th onclick="arbSortBy('direction')">最佳方向</th>
           <th onclick="arbSortBy('apr')">預估年化</th>
+          <th onclick="arbSortBy('turnover24h')">24h 交易量</th>
           <th>操作</th>
         </tr></thead>
-        <tbody id="arbBody"><tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted);">點擊「重新掃描」或等待自動載入…</td></tr></tbody>
+        <tbody id="arbBody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">點擊「重新掃描」或等待自動載入…</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -888,6 +897,7 @@ let arbData = [];
 let arbSortField = 'rateDiff';
 let arbSortAsc = false;
 let arbFilterAvailable = true;
+let arbFilterLowVol = true;
 let arbOrderType = 'maker';
 let arbSelectedCoin = null;
 
@@ -997,6 +1007,10 @@ function renderArbTable() {
   const search = (document.getElementById('arbSearch').value || '').trim().toUpperCase();
   let data = [...arbData];
   if (arbFilterAvailable) data = data.filter(d => d.available);
+  if (arbFilterLowVol) {
+    const minVol = parseFloat(document.getElementById('arbMinVol').value) || 10000000;
+    data = data.filter(d => d.turnover24h >= minVol);
+  }
   if (search) data = data.filter(d => d.symbol.includes(search));
   data.sort((a, b) => {
     if (arbSortField === 'symbol') return arbSortAsc ? a.symbol.localeCompare(b.symbol) : b.symbol.localeCompare(a.symbol);
@@ -1028,11 +1042,12 @@ function renderArbTable() {
       <td><span class="rate-diff-badge ${diffCls}">${diffPct}%</span></td>
       <td>${dirHtml}</td>
       <td class="mono ${aprCls}">${aprStr}</td>
+      <td class="mono" style="color:${d.turnover24h >= 50000000 ? 'var(--green)' : d.turnover24h >= 10000000 ? 'var(--text)' : 'var(--red)'};">${fmtNum(d.turnover24h)}</td>
       <td><button class="hedge-btn" style="border-color:var(--accent);color:var(--accent);" onclick="event.stopPropagation();selectArbCoin('${d.symbol}')">試算</button></td>
     </tr>`;
   });
 
-  if (!html) html = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
+  if (!html) html = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
   document.getElementById('arbBody').innerHTML = html;
 }
 
