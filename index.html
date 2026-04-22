@@ -396,6 +396,27 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div class="arb-metric"><div class="label">Bitget 預估強平</div><div class="value" id="arbResLiqBitget" style="color:var(--text);">—</div></div>
     </div>
 
+    <!-- Suggested TP Prices -->
+    <div id="arbTpPanel" style="display:none;margin-bottom:16px;padding:14px 18px;background:rgba(0,230,118,.06);border:1px solid rgba(0,230,118,.2);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">
+        <span style="font-weight:700;font-size:.85rem;color:var(--green);">🛡️ 建議止盈設定（防黑天鵝）</span>
+        <span style="font-size:.7rem;color:var(--muted);margin-left:auto;">止盈設在對面爆倉價之前，確保一邊爆倉時另一邊已鎖住利潤</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+        <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:12px;">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px;">Bybit 止盈價</div>
+          <div class="mono" style="font-size:1.05rem;font-weight:700;" id="arbTpBybit">—</div>
+          <div style="font-size:.7rem;margin-top:4px;" id="arbTpBybitNote"></div>
+        </div>
+        <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:12px;">
+          <div style="font-size:.75rem;color:var(--muted);margin-bottom:6px;">Bitget 止盈價</div>
+          <div class="mono" style="font-size:1.05rem;font-weight:700;" id="arbTpBitget">—</div>
+          <div style="font-size:.7rem;margin-top:4px;" id="arbTpBitgetNote"></div>
+        </div>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.5;" id="arbTpExplain"></div>
+    </div>
+
     <div class="info-box" id="arbInfoBox"></div>
 
     <button class="btn-main" onclick="confirmArbOrder()" style="margin-top:16px;margin-bottom:0;background:linear-gradient(135deg,var(--accent),#6c5ce7);">開始套利 — 記錄倉位</button>
@@ -1226,6 +1247,58 @@ function calcArbitrage() {
   const bitgetLiqDist = entryPrice > 0 ? (Math.abs(bitgetLiq - entryPrice) / entryPrice * 100).toFixed(1) : 0;
   document.getElementById('arbResLiqBybit').style.color = bybitLiqDist < 5 ? 'var(--red)' : bybitLiqDist < 15 ? 'var(--accent2)' : 'var(--green)';
   document.getElementById('arbResLiqBitget').style.color = bitgetLiqDist < 5 ? 'var(--red)' : bitgetLiqDist < 15 ? 'var(--accent2)' : 'var(--green)';
+
+  // Suggested TP prices (set TP at opposite side's liq price with safety buffer)
+  const tpPanel = document.getElementById('arbTpPanel');
+  if (entryPrice > 0 && bybitLiq > 0 && bitgetLiq > 0) {
+    tpPanel.style.display = 'block';
+
+    // Determine buffer based on 24h volume
+    const vol = arbSelectedCoin ? arbSelectedCoin.turnover24h : 0;
+    let bufferPct;
+    if (vol >= 100000000) bufferPct = 0.5;      // >100M: 主流幣, 0.5% buffer
+    else if (vol >= 50000000) bufferPct = 1.0;   // >50M: 大型, 1%
+    else if (vol >= 10000000) bufferPct = 2.0;   // >10M: 中型, 2%
+    else bufferPct = 3.0;                         // <10M: 小型, 3%
+
+    // Bybit TP: when Bitget gets liquidated, Bybit should TP
+    // Bitget TP: when Bybit gets liquidated, Bitget should TP
+    let bybitTp, bitgetTp;
+    if (dirBybit === '做多') {
+      // Bybit long → Bitget short. Bitget liq = price goes up a lot
+      // Bybit TP should be slightly BEFORE Bitget liq (price going up)
+      bybitTp = bitgetLiq * (1 - bufferPct / 100);
+      // Bitget short → Bybit long. Bybit liq = price goes down a lot
+      // Bitget TP should be slightly BEFORE Bybit liq (price going down)
+      bitgetTp = bybitLiq * (1 + bufferPct / 100);
+    } else {
+      // Bybit short → Bitget long. Bitget liq = price goes down a lot
+      // Bybit TP should be slightly BEFORE Bitget liq (price going down)
+      bybitTp = bitgetLiq * (1 + bufferPct / 100);
+      // Bitget short side is Bitget. Bybit liq = price goes up a lot
+      // Bitget TP should be slightly BEFORE Bybit liq (price going up)
+      bitgetTp = bybitLiq * (1 - bufferPct / 100);
+    }
+
+    const bybitTpDist = (Math.abs(bybitTp - entryPrice) / entryPrice * 100).toFixed(1);
+    const bitgetTpDist = (Math.abs(bitgetTp - entryPrice) / entryPrice * 100).toFixed(1);
+
+    document.getElementById('arbTpBybit').textContent = fmtPrice(bybitTp);
+    document.getElementById('arbTpBybit').style.color = 'var(--green)';
+    document.getElementById('arbTpBybitNote').innerHTML = `<span style="color:var(--muted);">距入場 ${bybitTpDist}%｜Bitget 爆倉前 ${bufferPct}% 觸發</span>`;
+
+    document.getElementById('arbTpBitget').textContent = fmtPrice(bitgetTp);
+    document.getElementById('arbTpBitget').style.color = 'var(--green)';
+    document.getElementById('arbTpBitgetNote').innerHTML = `<span style="color:var(--muted);">距入場 ${bitgetTpDist}%｜Bybit 爆倉前 ${bufferPct}% 觸發</span>`;
+
+    const volLabel = vol >= 100000000 ? '主流幣' : vol >= 50000000 ? '大型幣' : vol >= 10000000 ? '中型幣' : '小型幣';
+    document.getElementById('arbTpExplain').innerHTML =
+      `💡 安全緩衝 <strong>${bufferPct}%</strong>（依交易量 ${fmtNum(vol)} 判定為<strong>${volLabel}</strong>）— ` +
+      `當價格往一邊跑時，對面平台會先觸發止盈鎖住利潤，避免另一邊爆倉造成大虧。` +
+      `<br>⚠ 建議兩邊都設定好止盈價後再離開，不要依賴手動盯盤。`;
+  } else {
+    tpPanel.style.display = 'none';
+  }
 
   // Info box
   let tips = `<strong>💡 套利策略分析：</strong><br>`;
