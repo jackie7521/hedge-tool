@@ -392,8 +392,8 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
       <div class="arb-metric"><div class="label">持倉期間總收益</div><div class="value green" id="arbResTotalIncome">—</div></div>
       <div class="arb-metric"><div class="label">扣除成本淨利</div><div class="value green" id="arbResNetProfit">—</div></div>
-      <div class="arb-metric"><div class="label">Bybit 預估強平</div><div class="value" id="arbResLiqBybit" style="color:var(--text);">—</div></div>
-      <div class="arb-metric"><div class="label">Bitget 預估強平</div><div class="value" id="arbResLiqBitget" style="color:var(--text);">—</div></div>
+      <div class="arb-metric"><div class="label">Bybit 預估強平</div><div class="value" id="arbResLiqBybit" style="color:var(--text);">—</div><div class="mono" style="font-size:.72rem;margin-top:4px;" id="arbResLiqBybitDist"></div></div>
+      <div class="arb-metric"><div class="label">Bitget 預估強平</div><div class="value" id="arbResLiqBitget" style="color:var(--text);">—</div><div class="mono" style="font-size:.72rem;margin-top:4px;" id="arbResLiqBitgetDist"></div></div>
     </div>
 
     <!-- Suggested TP Prices -->
@@ -1245,8 +1245,12 @@ function calcArbitrage() {
   document.getElementById('arbResLiqBitget').textContent = entryPrice > 0 ? fmtPrice(bitgetLiq) : '—';
   const bybitLiqDist = entryPrice > 0 ? (Math.abs(bybitLiq - entryPrice) / entryPrice * 100).toFixed(1) : 0;
   const bitgetLiqDist = entryPrice > 0 ? (Math.abs(bitgetLiq - entryPrice) / entryPrice * 100).toFixed(1) : 0;
-  document.getElementById('arbResLiqBybit').style.color = bybitLiqDist < 5 ? 'var(--red)' : bybitLiqDist < 15 ? 'var(--accent2)' : 'var(--green)';
-  document.getElementById('arbResLiqBitget').style.color = bitgetLiqDist < 5 ? 'var(--red)' : bitgetLiqDist < 15 ? 'var(--accent2)' : 'var(--green)';
+  const bybitLiqColor = bybitLiqDist < 5 ? 'var(--red)' : bybitLiqDist < 15 ? 'var(--accent2)' : 'var(--green)';
+  const bitgetLiqColor = bitgetLiqDist < 5 ? 'var(--red)' : bitgetLiqDist < 15 ? 'var(--accent2)' : 'var(--green)';
+  document.getElementById('arbResLiqBybit').style.color = bybitLiqColor;
+  document.getElementById('arbResLiqBitget').style.color = bitgetLiqColor;
+  document.getElementById('arbResLiqBybitDist').innerHTML = entryPrice > 0 ? `<span style="color:${bybitLiqColor};">距強平 ${bybitLiqDist}%</span>` : '';
+  document.getElementById('arbResLiqBitgetDist').innerHTML = entryPrice > 0 ? `<span style="color:${bitgetLiqColor};">距強平 ${bitgetLiqDist}%</span>` : '';
 
   // Suggested TP prices (set TP at opposite side's liq price with safety buffer)
   const tpPanel = document.getElementById('arbTpPanel');
