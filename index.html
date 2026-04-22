@@ -2063,11 +2063,15 @@ function initGistUI() {
   document.getElementById('gistAutoSync').addEventListener('change', function() {
     localStorage.setItem('gistAutoSync', this.checked);
   });
-  // If token exists, show connected indicator
+  // If token exists, show connected indicator and auto-load from Gist
   if (token && gistId) {
     document.getElementById('btnGistToggle').textContent = 'Gist 已連線 ✓';
     document.getElementById('btnGistToggle').style.borderColor = 'var(--green)';
     document.getElementById('btnGistToggle').style.color = 'var(--green)';
+    // Auto-load from Gist on page open (sync from cloud)
+    if (autoSync) {
+      gistLoad(true); // silent auto-load
+    }
   }
 }
 
@@ -2135,10 +2139,10 @@ async function gistSave(silent = false) {
   }
 }
 
-async function gistLoad() {
+async function gistLoad(silent = false) {
   const token = document.getElementById('gistToken').value.trim();
   const gistId = document.getElementById('gistId').value.trim();
-  if (!token || !gistId) { setStatusEl('gistStatus','✗ 請填入 Token 和 Gist ID',false); return; }
+  if (!token || !gistId) { if (!silent) setStatusEl('gistStatus','✗ 請填入 Token 和 Gist ID',false); return; }
 
   try {
     const r = await fetch(`https://api.github.com/gists/${gistId}`, {
@@ -2183,13 +2187,16 @@ async function gistLoad() {
 
     const closedCount = loadClosedHistory().length;
     renderPositions();
-    setStatusEl('gistStatus', `✓ 已從 Gist 下載 ${data.length} 筆倉位 + ${arbCount} 筆套利 + ${closedCount} 筆歷史 — ${new Date().toLocaleTimeString()}`, true);
-    showToast(`已從 Gist 同步 ${data.length} 筆倉位 + ${arbCount} 筆套利`);
+    if (!silent) {
+      setStatusEl('gistStatus', `✓ 已從 Gist 下載 ${data.length} 筆倉位 + ${arbCount} 筆套利 + ${closedCount} 筆歷史 — ${new Date().toLocaleTimeString()}`, true);
+      showToast(`已從 Gist 同步 ${data.length} 筆倉位 + ${arbCount} 筆套利`);
+    }
     document.getElementById('btnGistToggle').textContent = 'Gist 已連線 ✓';
     document.getElementById('btnGistToggle').style.borderColor = 'var(--green)';
     document.getElementById('btnGistToggle').style.color = 'var(--green)';
   } catch(e) {
-    setStatusEl('gistStatus', `✗ 下載失敗: ${e.message}`, false);
+    if (!silent) setStatusEl('gistStatus', `✗ 下載失敗: ${e.message}`, false);
+    console.error('Gist load error:', e);
   }
 }
 
