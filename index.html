@@ -1425,15 +1425,21 @@ function renderArbPositions() {
     const rateDiffPct = (p.currentRateDiff * 100).toFixed(4);
     const rateDiffCls = p.currentRateDiff * 100 >= 0.03 ? 'rate-diff-high' : p.currentRateDiff * 100 >= 0.01 ? 'rate-diff-mid' : 'rate-diff-low';
 
-    // Check alerts
-    if (p.currentRateDiff * 100 < 0.01) {
-      alerts.push(`<span style="color:var(--red);font-weight:700;">${p.coin}</span> 費率差已縮小至 ${rateDiffPct}%，建議考慮平倉！`);
+    // Check alerts — only use settled (confirmed) rates, not predicted rates
+    // settledBybitRate / settledBitgetRate are from funding/history API (last settled)
+    const settledBybitRate = p.settledBybitRate !== undefined ? p.settledBybitRate : p.currentBybitRate;
+    const settledBitgetRate = p.settledBitgetRate !== undefined ? p.settledBitgetRate : p.currentBitgetRate;
+    const settledRateDiff = Math.abs(settledBybitRate - settledBitgetRate);
+    const settledRateDiffPct = (settledRateDiff * 100).toFixed(4);
+
+    if (settledRateDiff * 100 < 0.01 && p.settlements > 0) {
+      alerts.push(`<span style="color:var(--red);font-weight:700;">${p.coin}</span> 最近一次結算費率差僅 ${settledRateDiffPct}%，建議考慮平倉！`);
     }
-    // Check if direction flipped
-    const nowBybitHigher = p.currentBybitRate > p.currentBitgetRate;
+    // Check if direction flipped (only based on settled rates)
+    const settledBybitHigher = settledBybitRate > settledBitgetRate;
     const entryBybitHigher = p.entryBybitRate > p.entryBitgetRate;
-    if (nowBybitHigher !== entryBybitHigher && p.currentRateDiff * 100 > 0.005) {
-      alerts.push(`<span style="color:var(--red);font-weight:700;">${p.coin}</span> 費率方向已翻轉！開倉時 ${entryBybitHigher ? 'Bybit > Bitget' : 'Bitget > Bybit'}，現在 ${nowBybitHigher ? 'Bybit > Bitget' : 'Bitget > Bybit'}，正在倒虧費率！`);
+    if (p.settlements > 0 && settledBybitHigher !== entryBybitHigher && settledRateDiff * 100 > 0.005) {
+      alerts.push(`<span style="color:var(--red);font-weight:700;">${p.coin}</span> 費率方向已翻轉！開倉時 ${entryBybitHigher ? 'Bybit > Bitget' : 'Bitget > Bybit'}，上次結算 ${settledBybitHigher ? 'Bybit > Bitget' : 'Bitget > Bybit'}，正在倒貼費率！`);
     }
     // Liquidation warning
     if (bybitLiqDist < 5 || bitgetLiqDist < 5) {
@@ -1458,6 +1464,7 @@ function renderArbPositions() {
       <td>
         <span class="rate-diff-badge ${rateDiffCls}">${rateDiffPct}%</span>
         <div style="font-size:.6rem;color:var(--muted);margin-top:3px;">開倉 ${(p.entryRateDiff * 100).toFixed(4)}%</div>
+        ${p.settledBybitRate !== undefined ? `<div style="font-size:.58rem;color:var(--muted);margin-top:1px;">已結算 ${(settledRateDiff * 100).toFixed(4)}%</div>` : ''}
       </td>
       <td class="mono ${incomeCls}" style="font-weight:600;">${incomeStr}<div style="font-size:.65rem;color:var(--muted);font-weight:400;">${p.settlements} 次結算</div></td>
       <td><span class="time-elapsed">${elapsed}</span></td>
@@ -1488,28 +1495,42 @@ async function updateArbPositions() {
       const bSym = p.symbol;
       const bitgetSym = COIN_MAP_BITGET(bSym);
 
-      const [bybitRes, bitgetRes, priceRes] = await Promise.allSettled([
+      const [bybitSettledRes, bitgetSettledRes, bybitPredRes, bitgetPredRes] = await Promise.allSettled([
+        // Settled (confirmed) rates — from funding history
         fetch(`https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${bSym}&limit=1`),
         fetch(`https://api.bitget.com/api/v2/mix/market/current-fund-rate?symbol=${bitgetSym}&productType=USDT-FUTURES`),
-        fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${bSym}`)
+        // Predicted (next settlement) rates + price — from tickers
+        fetch(`https://api.bybit.com/v5/market/tickers?category=linear&symbol=${bSym}`),
+        fetch(`https://api.bitget.com/api/v2/mix/market/tickers?productType=USDT-FUTURES&symbol=${bitgetSym}`)
       ]);
 
-      if (bybitRes.status === 'fulfilled') {
-        const bj = await bybitRes.value.json();
+      // Settled rates (last confirmed settlement)
+      if (bybitSettledRes.status === 'fulfilled') {
+        const bj = await bybitSettledRes.value.json();
+        if (bj.retCode === 0 && bj.result?.list?.length > 0) {
+          p.settledBybitRate = parseFloat(bj.result.list[0].fundingRate);
+        }
+      }
+      if (bitgetSettledRes.status === 'fulfilled') {
+        const oj = await bitgetSettledRes.value.json();
+        if (oj.code === '00000' && oj.data?.length > 0) {
+          p.settledBitgetRate = parseFloat(oj.data[0].fundingRate);
+        }
+      }
+
+      // Predicted rates (for display, not for alerts) + price
+      if (bybitPredRes.status === 'fulfilled') {
+        const bj = await bybitPredRes.value.json();
         if (bj.retCode === 0 && bj.result?.list?.length > 0) {
           p.currentBybitRate = parseFloat(bj.result.list[0].fundingRate);
+          positionPriceCache[p.coin] = parseFloat(bj.result.list[0].lastPrice);
         }
       }
-      if (bitgetRes.status === 'fulfilled') {
-        const oj = await bitgetRes.value.json();
-        if (oj.code === '00000' && oj.data?.length > 0) {
-          p.currentBitgetRate = parseFloat(oj.data[0].fundingRate);
-        }
-      }
-      if (priceRes.status === 'fulfilled') {
-        const pj = await priceRes.value.json();
-        if (pj.retCode === 0 && pj.result?.list?.length > 0) {
-          positionPriceCache[p.coin] = parseFloat(pj.result.list[0].lastPrice);
+      if (bitgetPredRes.status === 'fulfilled') {
+        const oj = await bitgetPredRes.value.json();
+        const matchedTicker = oj.code === '00000' && oj.data ? oj.data.find(x => x.symbol === bitgetSym) : null;
+        if (matchedTicker) {
+          p.currentBitgetRate = parseFloat(matchedTicker.fundingRate);
         }
       }
 
