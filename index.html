@@ -417,6 +417,26 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <div style="font-size:.72rem;color:var(--muted);margin-top:10px;line-height:1.5;" id="arbTpExplain"></div>
     </div>
 
+    <!-- Rate Stability History -->
+    <div id="arbHistoryPanel" style="display:none;margin-bottom:16px;padding:14px 18px;background:rgba(108,92,231,.06);border:1px solid rgba(108,92,231,.2);border-radius:10px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+        <span style="font-weight:700;font-size:.85rem;color:#a855f7;">📈 費率穩定度（近 24 次結算 ≈ 8 天）</span>
+        <span id="arbHistoryStatus" style="font-size:.68rem;color:var(--muted);margin-left:auto;"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;">
+        <div class="arb-metric" style="border-color:#a855f7;"><div class="label">穩定度評分</div><div class="value" id="arbStabilityScore" style="font-size:1.1rem;">—</div></div>
+        <div class="arb-metric"><div class="label">平均費率差</div><div class="value mono" id="arbAvgRateDiff">—</div></div>
+        <div class="arb-metric"><div class="label">方向一致率</div><div class="value mono" id="arbDirConsistency">—</div></div>
+        <div class="arb-metric"><div class="label">費率差波動</div><div class="value mono" id="arbRateVolatility">—</div></div>
+      </div>
+      <div id="arbHistoryChart" style="display:flex;align-items:flex-end;gap:2px;height:60px;margin-bottom:8px;padding:4px 0;"></div>
+      <div style="display:flex;justify-content:space-between;font-size:.65rem;color:var(--muted);">
+        <span>8 天前 ←</span>
+        <span>→ 現在</span>
+      </div>
+      <div style="font-size:.72rem;color:var(--muted);margin-top:8px;line-height:1.5;" id="arbHistoryAdvice"></div>
+    </div>
+
     <div class="info-box" id="arbInfoBox"></div>
 
     <button class="btn-main" onclick="confirmArbOrder()" style="margin-top:16px;margin-bottom:0;background:linear-gradient(135deg,var(--accent),#6c5ce7);">開始套利 — 記錄倉位</button>
@@ -1085,6 +1105,7 @@ function selectArbCoin(symbol) {
   updateSpreadDisplay(d);
   calcArbitrage();
   fetchFreshBidAsk(symbol, d.bitgetSymbol);
+  fetchRateHistory(symbol, d.bitgetSymbol);
 
   document.getElementById('arbCalcPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -1158,6 +1179,120 @@ async function fetchFreshBidAsk(bybitSymbol, bitgetSymbol) {
     calcArbitrage();
   } catch(e) {
     console.warn('Failed to fetch fresh bid/ask:', e);
+  }
+}
+
+async function fetchRateHistory(bybitSymbol, bitgetSymbol) {
+  const panel = document.getElementById('arbHistoryPanel');
+  document.getElementById('arbHistoryStatus').textContent = '載入中…';
+  panel.style.display = 'block';
+
+  try {
+    const [bybitRes, bitgetRes] = await Promise.all([
+      fetch(`https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${bybitSymbol}&limit=24`),
+      fetch(`https://api.bitget.com/api/v2/mix/market/history-fund-rate?symbol=${bitgetSymbol}&productType=USDT-FUTURES&pageSize=24`)
+    ]);
+    const bybitJson = await bybitRes.json();
+    const bitgetJson = await bitgetRes.json();
+
+    // Parse Bybit history
+    const bybitHistory = {};
+    if (bybitJson.retCode === 0 && bybitJson.result?.list) {
+      bybitJson.result.list.forEach(r => {
+        bybitHistory[r.fundingRateTimestamp] = parseFloat(r.fundingRate);
+      });
+    }
+
+    // Parse Bitget history
+    const bitgetHistory = {};
+    if (bitgetJson.code === '00000' && bitgetJson.data) {
+      bitgetJson.data.forEach(r => {
+        bitgetHistory[r.fundingTime] = parseFloat(r.fundingRate);
+      });
+    }
+
+    // Match by timestamp and calculate diffs
+    const allTimestamps = [...new Set([...Object.keys(bybitHistory), ...Object.keys(bitgetHistory)])].sort();
+    const diffs = [];
+    allTimestamps.forEach(ts => {
+      const bybitRate = bybitHistory[ts];
+      const bitgetRate = bitgetHistory[ts];
+      if (bybitRate !== undefined && bitgetRate !== undefined) {
+        const diff = bybitRate - bitgetRate;
+        diffs.push({ ts: parseInt(ts), diff, absDiff: Math.abs(diff), bybitRate, bitgetRate });
+      }
+    });
+
+    if (diffs.length < 3) {
+      document.getElementById('arbHistoryStatus').textContent = '歷史資料不足';
+      document.getElementById('arbStabilityScore').textContent = '—';
+      document.getElementById('arbStabilityScore').style.color = 'var(--muted)';
+      return;
+    }
+
+    // Calculate metrics
+    const avgDiff = diffs.reduce((s, d) => s + d.absDiff, 0) / diffs.length;
+
+    // Direction consistency: how often the diff direction matches the current direction
+    const currentDir = arbSelectedCoin.bybitRate > arbSelectedCoin.bitgetRate ? 'bybit' : 'bitget';
+    const sameDir = diffs.filter(d => (currentDir === 'bybit' ? d.diff > 0 : d.diff < 0)).length;
+    const dirConsistency = (sameDir / diffs.length * 100);
+
+    // Volatility: standard deviation of diff
+    const mean = diffs.reduce((s, d) => s + d.diff, 0) / diffs.length;
+    const variance = diffs.reduce((s, d) => s + Math.pow(d.diff - mean, 2), 0) / diffs.length;
+    const stdDev = Math.sqrt(variance);
+
+    // Stability score (0-100)
+    // High avg diff + high consistency + low volatility = high score
+    let score = 0;
+    // Avg diff contribution (0-40): higher avg diff is better
+    score += Math.min(40, avgDiff * 100 * 400);
+    // Consistency contribution (0-35): higher consistency is better
+    score += dirConsistency / 100 * 35;
+    // Low volatility contribution (0-25): lower stddev relative to mean is better
+    const cv = avgDiff > 0 ? stdDev / avgDiff : 10; // coefficient of variation
+    score += Math.max(0, 25 - cv * 12.5);
+    score = Math.min(100, Math.max(0, Math.round(score)));
+
+    // Display
+    const scoreColor = score >= 70 ? 'var(--green)' : score >= 40 ? 'var(--accent2)' : 'var(--red)';
+    const scoreLabel = score >= 70 ? '穩定' : score >= 40 ? '普通' : '不穩定';
+    document.getElementById('arbStabilityScore').innerHTML = `<span style="color:${scoreColor};">${score}<span style="font-size:.6rem;"> / 100</span></span><div style="font-size:.7rem;color:${scoreColor};">${scoreLabel}</div>`;
+    document.getElementById('arbAvgRateDiff').textContent = (avgDiff * 100).toFixed(4) + '%';
+    document.getElementById('arbAvgRateDiff').style.color = avgDiff * 100 >= 0.03 ? 'var(--green)' : avgDiff * 100 >= 0.01 ? 'var(--accent2)' : 'var(--red)';
+    document.getElementById('arbDirConsistency').textContent = dirConsistency.toFixed(0) + '%';
+    document.getElementById('arbDirConsistency').style.color = dirConsistency >= 70 ? 'var(--green)' : dirConsistency >= 50 ? 'var(--accent2)' : 'var(--red)';
+    document.getElementById('arbRateVolatility').textContent = (stdDev * 100).toFixed(4) + '%';
+    document.getElementById('arbRateVolatility').style.color = cv < 1 ? 'var(--green)' : cv < 2 ? 'var(--accent2)' : 'var(--red)';
+
+    // Mini bar chart
+    const maxAbsDiff = Math.max(...diffs.map(d => d.absDiff));
+    let chartHtml = '';
+    diffs.forEach(d => {
+      const h = maxAbsDiff > 0 ? Math.max(3, d.absDiff / maxAbsDiff * 56) : 3;
+      const sameDirection = (currentDir === 'bybit' ? d.diff > 0 : d.diff < 0);
+      const color = sameDirection ? 'var(--green)' : 'var(--red)';
+      const pct = (d.absDiff * 100).toFixed(4);
+      chartHtml += `<div title="${new Date(d.ts).toLocaleString()} — 費率差 ${pct}%" style="flex:1;height:${h}px;background:${color};border-radius:2px;min-width:6px;opacity:.8;"></div>`;
+    });
+    document.getElementById('arbHistoryChart').innerHTML = chartHtml;
+
+    // Advice
+    let advice = '';
+    if (score >= 70) {
+      advice = `✅ 費率差穩定，方向一致率 ${dirConsistency.toFixed(0)}%，適合進場套利。平均費率差 ${(avgDiff * 100).toFixed(4)}% 可作為持倉期間的合理預期。`;
+    } else if (score >= 40) {
+      advice = `⚠️ 費率差穩定度普通，方向一致率僅 ${dirConsistency.toFixed(0)}%，費率可能在結算之間翻轉。建議小倉位試水，並密切關注費率變化。`;
+    } else {
+      advice = `❌ 費率差非常不穩定，歷史方向一致率僅 ${dirConsistency.toFixed(0)}%，波動大。不建議做套利，費率可能很快翻轉導致虧損。`;
+    }
+    document.getElementById('arbHistoryAdvice').innerHTML = advice;
+
+    document.getElementById('arbHistoryStatus').textContent = `${diffs.length} 筆歷史 — ${new Date().toLocaleTimeString()}`;
+  } catch(e) {
+    document.getElementById('arbHistoryStatus').textContent = '載入失敗: ' + e.message;
+    console.error('Rate history error:', e);
   }
 }
 
