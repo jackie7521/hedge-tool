@@ -267,7 +267,7 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
         <th onclick="lbSortBy('openInterestValue')">未平倉(USD) <span class="arrow">▼</span></th>
         <th style="width:120px;">操作</th>
       </tr></thead>
-      <tbody id="lbBody"><tr><td colspan="9"><div class="loading-overlay"><div class="spinner"></div>正在從 Bybit API 載入數據…</div></td></tr></tbody>
+      <tbody id="lbBody"><tr><td colspan="10"><div class="loading-overlay"><div class="spinner"></div>正在從 Bybit API 載入數據…</div></td></tr></tbody>
     </table>
   </div>
 </div>
@@ -313,9 +313,10 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
           <th onclick="arbSortBy('direction')">最佳方向</th>
           <th onclick="arbSortBy('apr')">預估年化</th>
           <th onclick="arbSortBy('turnover24h')">24h 交易量</th>
+          <th onclick="arbSortBy('stability')" style="cursor:pointer;">穩定度</th>
           <th>操作</th>
         </tr></thead>
-        <tbody id="arbBody"><tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted);">點擊「重新掃描」或等待自動載入…</td></tr></tbody>
+        <tbody id="arbBody"><tr><td colspan="10" style="text-align:center;padding:40px;color:var(--muted);">點擊「重新掃描」或等待自動載入…</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -832,7 +833,7 @@ async function loadLeaderboard() {
     document.getElementById('navDot').className='live-dot off';
     document.getElementById('navStatus').textContent='抓取失敗: '+e.message;
     document.getElementById('navStatus').style.color='var(--red)';
-    document.getElementById('lbBody').innerHTML=`<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--red);">API 連線失敗：${e.message}</td></tr>`;
+    document.getElementById('lbBody').innerHTML=`<tr><td colspan="10" style="text-align:center;padding:40px;color:var(--red);">API 連線失敗：${e.message}</td></tr>`;
   }
   btn.classList.remove('loading'); btn.textContent='重新抓取';
 }
@@ -895,7 +896,7 @@ function renderLb() {
       <td>${btnWsot}</td>
     </tr>`;
   });
-  if(!html)html='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
+  if(!html)html='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
   document.getElementById('lbBody').innerHTML=html;
 }
 
@@ -1023,6 +1024,7 @@ async function loadArbData() {
           direction, dirBybit, dirBitget,
           apr: aprEstimate,
           turnover24h: parseFloat(t.turnover24h || 0),
+          stability: undefined, // will be filled by fetchTopStability
           available: bitgetRate !== null,
         });
       });
@@ -1031,11 +1033,84 @@ async function loadArbData() {
     document.getElementById('arbScanStatus').innerHTML =
       `<span class="live-dot on" style="width:6px;height:6px;margin-right:4px;"></span>已掃描 ${arbData.length} 個幣種 — ${new Date().toLocaleTimeString()}`;
     renderArbTable();
+
+    // Auto-fetch stability for top coins
+    fetchTopStability();
   } catch(e) {
     document.getElementById('arbScanStatus').textContent = '✗ 掃描失敗: ' + e.message;
     document.getElementById('arbScanStatus').style.color = 'var(--red)';
   }
   btn.textContent = '重新掃描'; btn.classList.remove('loading');
+}
+
+async function fetchTopStability() {
+  // Get top 15 coins by rate diff that have enough volume
+  const minVol = parseFloat(document.getElementById('arbMinVol')?.value) || 10000000;
+  const top = [...arbData]
+    .filter(d => d.available && d.turnover24h >= minVol)
+    .sort((a, b) => b.rateDiff - a.rateDiff)
+    .slice(0, 15);
+
+  if (top.length === 0) return;
+
+  document.getElementById('arbScanStatus').innerHTML +=
+    ' <span style="color:var(--accent2);">— 正在分析穩定度…</span>';
+
+  // Fetch in batches of 5 to avoid rate limiting
+  for (let i = 0; i < top.length; i += 5) {
+    const batch = top.slice(i, i + 5);
+    await Promise.all(batch.map(d => fetchCoinStability(d)));
+  }
+
+  renderArbTable();
+  document.getElementById('arbScanStatus').innerHTML =
+    `<span class="live-dot on" style="width:6px;height:6px;margin-right:4px;"></span>已掃描 ${arbData.length} 個幣種（含穩定度）— ${new Date().toLocaleTimeString()}`;
+}
+
+async function fetchCoinStability(d) {
+  try {
+    const [bybitRes, bitgetRes] = await Promise.all([
+      fetch(`https://api.bybit.com/v5/market/funding/history?category=linear&symbol=${d.symbol}&limit=24`),
+      fetch(`https://api.bitget.com/api/v2/mix/market/history-fund-rate?symbol=${d.bitgetSymbol}&productType=USDT-FUTURES&pageSize=24`)
+    ]);
+    const bybitJson = await bybitRes.json();
+    const bitgetJson = await bitgetRes.json();
+
+    const bybitHistory = {};
+    if (bybitJson.retCode === 0 && bybitJson.result?.list) {
+      bybitJson.result.list.forEach(r => { bybitHistory[r.fundingRateTimestamp] = parseFloat(r.fundingRate); });
+    }
+    const bitgetHistory = {};
+    if (bitgetJson.code === '00000' && bitgetJson.data) {
+      bitgetJson.data.forEach(r => { bitgetHistory[r.fundingTime] = parseFloat(r.fundingRate); });
+    }
+
+    const allTs = [...new Set([...Object.keys(bybitHistory), ...Object.keys(bitgetHistory)])].sort();
+    const diffs = [];
+    allTs.forEach(ts => {
+      const br = bybitHistory[ts], gr = bitgetHistory[ts];
+      if (br !== undefined && gr !== undefined) diffs.push({ diff: br - gr, absDiff: Math.abs(br - gr) });
+    });
+
+    if (diffs.length < 3) { d.stability = 0; return; }
+
+    const avgDiff = diffs.reduce((s, x) => s + x.absDiff, 0) / diffs.length;
+    const currentDir = d.bybitRate > d.bitgetRate ? 'bybit' : 'bitget';
+    const sameDir = diffs.filter(x => (currentDir === 'bybit' ? x.diff > 0 : x.diff < 0)).length;
+    const dirConsistency = sameDir / diffs.length;
+    const mean = diffs.reduce((s, x) => s + x.diff, 0) / diffs.length;
+    const variance = diffs.reduce((s, x) => s + Math.pow(x.diff - mean, 2), 0) / diffs.length;
+    const stdDev = Math.sqrt(variance);
+    const cv = avgDiff > 0 ? stdDev / avgDiff : 10;
+
+    let score = 0;
+    score += Math.min(40, avgDiff * 100 * 400);
+    score += dirConsistency * 35;
+    score += Math.max(0, 25 - cv * 12.5);
+    d.stability = Math.min(100, Math.max(0, Math.round(score)));
+  } catch(e) {
+    d.stability = -1; // failed
+  }
 }
 
 function arbSortBy(f) {
@@ -1084,11 +1159,12 @@ function renderArbTable() {
       <td>${dirHtml}</td>
       <td class="mono ${aprCls}">${aprStr}</td>
       <td class="mono" style="color:${d.turnover24h >= 50000000 ? 'var(--green)' : d.turnover24h >= 10000000 ? 'var(--text)' : 'var(--red)'};">${fmtNum(d.turnover24h)}</td>
+      <td class="mono" style="font-weight:600;color:${d.stability >= 70 ? 'var(--green)' : d.stability >= 40 ? 'var(--accent2)' : d.stability >= 0 ? 'var(--red)' : 'var(--muted)'};">${d.stability >= 0 ? d.stability : d.stability === -1 ? '✗' : '—'}</td>
       <td><button class="hedge-btn" style="border-color:var(--accent);color:var(--accent);" onclick="event.stopPropagation();selectArbCoin('${d.symbol}')">試算</button></td>
     </tr>`;
   });
 
-  if (!html) html = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
+  if (!html) html = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--muted);">沒有符合條件的結果</td></tr>';
   document.getElementById('arbBody').innerHTML = html;
 }
 
