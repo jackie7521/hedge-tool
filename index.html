@@ -472,11 +472,13 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:14px 0;}
           <th>Bybit 爆倉距離</th>
           <th>Bitget 爆倉距離</th>
           <th>當前費率差</th>
-          <th>累計收益</th>
+          <th>費率收入</th>
+          <th>總成本</th>
+          <th>淨損益</th>
           <th>持倉時長</th>
           <th>操作</th>
         </tr></thead>
-        <tbody id="arbPosBody"><tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">尚無套利倉位，請在上方試算後點擊「開始套利」</td></tr></tbody>
+        <tbody id="arbPosBody"><tr><td colspan="13" style="text-align:center;padding:30px;color:var(--muted);">尚無套利倉位，請在上方試算後點擊「開始套利」</td></tr></tbody>
       </table>
     </div>
   </div>
@@ -1611,7 +1613,7 @@ function renderArbPositions() {
   document.getElementById('arbPosBadge').textContent = positions.length;
 
   if (positions.length === 0) {
-    document.getElementById('arbPosBody').innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--muted);">尚無套利倉位，請在上方試算後點擊「開始套利」</td></tr>';
+    document.getElementById('arbPosBody').innerHTML = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--muted);">尚無套利倉位，請在上方試算後點擊「開始套利」</td></tr>';
     document.getElementById('arbAlertBanner').style.display = 'none';
     return;
   }
@@ -1659,9 +1661,12 @@ function renderArbPositions() {
       alerts.push(`<span style="color:var(--red);font-weight:700;">${p.coin}</span> 爆倉距離過近！Bybit ${bybitLiqDist.toFixed(1)}% / Bitget ${bitgetLiqDist.toFixed(1)}%`);
     }
 
-    // Accumulated income estimate
-    const incomeStr = p.accumulatedIncome >= 0 ? '+$' + fmt(p.accumulatedIncome) : '-$' + fmt(Math.abs(p.accumulatedIncome));
-    const incomeCls = p.accumulatedIncome >= 0 ? 'green' : 'red';
+    // Income breakdown
+    const grossIncome = p.grossIncome || 0;
+    const totalCost = p.totalCost || (p.openFee + p.withdrawFee);
+    const netPnl = grossIncome - totalCost;
+    const netPnlStr = netPnl >= 0 ? '+$' + fmt(netPnl) : '-$' + fmt(Math.abs(netPnl));
+    const netPnlCls = netPnl >= 0 ? 'green' : 'red';
 
     html += `<tr>
       <td><span class="symbol-name">${p.coin}</span><span class="symbol-pair"> / USDT</span></td>
@@ -1679,7 +1684,9 @@ function renderArbPositions() {
         <div style="font-size:.6rem;color:var(--muted);margin-top:3px;">開倉 ${(p.entryRateDiff * 100).toFixed(4)}%</div>
         ${p.settledBybitRate !== undefined ? `<div style="font-size:.58rem;color:var(--muted);margin-top:1px;">已結算 ${(settledRateDiff * 100).toFixed(4)}%</div>` : ''}
       </td>
-      <td class="mono ${incomeCls}" style="font-weight:600;">${incomeStr}<div style="font-size:.65rem;color:var(--muted);font-weight:400;">${p.settlements} 次結算</div></td>
+      <td class="mono green" style="font-weight:600;">+$${fmt(grossIncome)}<div style="font-size:.65rem;color:var(--muted);font-weight:400;">${p.settlements} 次結算</div></td>
+      <td class="mono red" style="font-size:.78rem;">-$${fmt(totalCost)}<div style="font-size:.6rem;color:var(--muted);font-weight:400;">手續費 $${fmt(p.openFee)}<br>提幣費 $${fmt(p.withdrawFee)}</div></td>
+      <td class="mono ${netPnlCls}" style="font-weight:700;">${netPnlStr}</td>
       <td><span class="time-elapsed">${elapsed}</span></td>
       <td><button class="pos-del-btn" onclick="closeArbPosition('${p.id}')">平倉</button></td>
     </tr>`;
@@ -1761,7 +1768,9 @@ async function updateArbPositions() {
       }
       // Use average of entry and current rate for estimate
       const avgNetRate = (p.entryRateDiff + Math.abs(netRate)) / 2;
-      p.accumulatedIncome = p.positionUsdt * avgNetRate * settlementsEst - p.openFee - p.withdrawFee;
+      p.grossIncome = p.positionUsdt * avgNetRate * settlementsEst;
+      p.totalCost = p.openFee + p.withdrawFee;
+      p.accumulatedIncome = p.grossIncome - p.totalCost;
       p.settlements = settlementsEst;
 
       updated = true;
